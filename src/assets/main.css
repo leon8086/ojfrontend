@@ -1,0 +1,18 @@
+@import './base.css';
+
+.ivu-layout-header{
+    background:white !important; 
+    height: 60px !important;
+}
+
+.content-app{
+  margin-top : 80px;
+}
+
+.ivu-layout-footer{
+  text-align: center;
+}
+
+.ivu-table .table-cell-center{
+  text-align: center;
+}
