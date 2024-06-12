@@ -93,7 +93,7 @@
             <ul>
               <li>
                 <p>ID</p>
-                <p>{{problem.titleId}}</p>
+                <p>{{problem.displayId}}</p>
               </li>
               <li>
                 <p>{{$t('m.Time_Limit')}}</p>
@@ -102,10 +102,6 @@
               <li>
                 <p>{{$t('m.Memory_Limit')}}</p>
                 <p>{{problem.memoryLimit}}MB</p></li>
-              <li>
-                <p>{{$t('m.IOMode')}}</p>
-                <p>{{problem.ioMode.io_mode}}</p>
-              </li>
               <li v-if="problem.difficulty">
                 <p>{{$t('m.Level')}}</p>
                 <p><Tag :color="({Low:'success',High:'warning',Mid:'primary'})[problem.difficulty]">{{$t('m.' + problem.difficulty)}}</Tag></p></li>
@@ -130,7 +126,7 @@ import NavBar from '../components/NavBar.vue'
 import Panel from '../components/Panel.vue'
 import CodeMirror from '../components/CodeMirror.vue'
 import VerticalMenu from "../components/verticalMenu/verticalMenu.vue"
-import VerticalMenuItem from "../components/verticalMenu/verticalmenu-item.vue"
+import VerticalMenuItem from "../components/verticalMenu/verticalMenu-item.vue"
 import XMUTFooter from '../components/XMUTFooter.vue'
 import utils from '../utils'
 
@@ -147,7 +143,7 @@ const captchaSrc = ref('');
 const contestID = ref('');
 const problemID = ref('');
 const submitting = ref(false);
-let code = ref('');
+const code = ref('');
 const language=ref('C++');
 const theme=ref('Clouds');
 const submissionId=ref('');
@@ -202,7 +198,8 @@ onMounted(() => {
   problemID.value = utils.getUrlKey("id");
   api.getProblemDetail(problemID.value)
   .then(resp => {
-    problem.value = resp.data;
+    problem.value = resp.data
+    code.value = problem.value.template[language.value];
   });
 })
 </script>

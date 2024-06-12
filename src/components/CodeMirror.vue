@@ -26,13 +26,14 @@
       </Col>
     </Row>
     <codemirror
-      v-model="code"
+      v-model="props.modelValue"
       placeholder=""
       :style="style"
       :indent-with-tab="true"
       :tab-size="4"
       :extensions="extensions"
       @ready="handleReady"
+      @change="codeChanged"
     />
   </div>
 </template>
@@ -98,7 +99,8 @@
         { id:'5',title:'Github',theme:githubLight},
         { id:'6',title:'Github(dark)',theme:githubDark},
       ]
-      const code = ref(props.modelValue);
+      //const code = ref(props.modelValue);
+      console.log(props.modelValue);
       const extensions = [lang_comp.of(cpp()), theme_comp.of(clouds)]
 
       let getDefaultLanguage = function( defLang, LangSet){
@@ -121,9 +123,12 @@
         language.value = getDefaultLanguage(props.defaultLanguage, props.languageSets);
       })
       
-      watch(code, ()=>{
-        ctx.emit("update:modelValue", code.value);
-      })
+      //watch(props.modelValue, ()=>{
+      //  ctx.emit("update:modelValue", props.modelValue);
+      //})
+      let codeChanged = function(){
+        ctx.emit("update:modelValue", props.modelValue);
+      }
 
       // Codemirror EditorView instance ref
       const view = shallowRef()
@@ -145,12 +150,12 @@
         extensions,
         optChanged,
         handleReady,
-        code,
         style,
         language,
         theme,
         theme_options,
         onResetClick,
+        codeChanged,
       }
     }
   });

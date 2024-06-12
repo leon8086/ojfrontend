@@ -9,6 +9,10 @@ let code = ref("console.log");
 let look = function(){
   console.log(code.value);
 }
+
+let set = function(){
+   code.value = "print('Hello World!')"
+}
 </script>
 
 <template>
@@ -24,6 +28,7 @@ let look = function(){
       </Content>
   </div>
   <Button @click="look()">看！</Button>
+  <Button @click="set()">改！</Button>
   <XMUTFooter></XMUTFooter>
 </Layout>
 </template>
