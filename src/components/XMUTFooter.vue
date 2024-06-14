@@ -6,4 +6,7 @@
 </script>
 
 <style scoped lang="less">
+.layout-footer-center{
+    color: var(--xmut-cs-color);
+}
 </style>

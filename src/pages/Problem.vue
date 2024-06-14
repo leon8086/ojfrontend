@@ -1,154 +1,27 @@
-<template>
-  <Layout>
-      <NavBar :website="{website_name:'数据结构2022',allow_register:true}" :activeMenu="'/problems'" :user="{username:'tom'}"></NavBar>
-      <div class="flex-container">
-        <div class="content-app" id="problem-main">
-          <Panel :padding="40">
-            <template #title>
-              <div>{{problem.title}}</div>
-            </template>
-          <div id="problem-content" class="markdown-body" v-katex>
-            <p class="title">{{$t('m.Description')}}</p>
-            <p class="content" v-html=problem.description></p>
-            <p class="title">{{$t('m.Input')}} <span v-if="problem.ioMode.io_mode=='File IO'">({{$t('m.FromFile')}}: {{ problem.ioMode.input }})</span></p>
-            <p class="content" v-html=problem.inputDescription></p>
-
-            <p class="title">{{$t('m.Output')}} <span v-if="problem.ioMode.io_mode=='File IO'">({{$t('m.ToFile')}}: {{ problem.ioMode.output }})</span></p>
-            <p class="content" v-html=problem.outputDescription></p>
-
-            <div v-for="(sample, index) of problem.samples" :key="index">
-              <div class="flex-container sample">
-                <div class="sample-input">
-                  <p class="title">{{$t('m.Sample_Input')}} {{index + 1}}
-                    <a class="copy"
-                      v-clipboard:copy="sample.input"
-                      v-clipboard:success="onCopy"
-                      v-clipboard:error="onCopyError">
-                      <Icon type="md-clipboard"></Icon>
-                    </a>
-                  </p>
-                  <pre>{{sample.input}}</pre>
-                </div>
-                <div class="sample-output">
-                  <p class="title">{{$t('m.Sample_Output')}} {{index + 1}}</p>
-                  <pre>{{sample.output}}</pre>
-                </div>
-              </div>
-            </div>
-              <div v-if="problem.hint">
-                <p class="title">{{$t('m.Hint')}}</p>
-                <Card dis-hover>
-                  <div class="content" v-html=problem.hint></div>
-                </Card>
-              </div>
-
-              <div v-if="problem.source">
-                <p class="title">{{$t('m.Source')}}</p>
-                <p class="content">{{problem.source}}</p>
-              </div>
-            </div>
-        </Panel>
-          <Card :padding="20" id="submit-code" dis-hover>
-            <CodeMirror v-model="code"
-                        :languageSets="problem.languages"
-                        :defaultLanguage="language"
-                        :theme="theme"
-                        @resetCode="onResetToTemplate"
-                        ></CodeMirror>
-            <Row type="flex" justify="space-between">
-              <Col :span="10">
-                <div v-if="problem.my_status === 0">
-                  <Alert type="success" show-icon>{{$t('m.You_have_solved_the_problem')}}</Alert>
-                </div>
-              </Col>
-
-              <Col :span="12">
-                <template v-if="captchaRequired">
-                  <div class="captcha-container">
-                    <Tooltip v-if="captchaRequired" content="Click to refresh" placement="top">
-                      <img :src="captchaSrc" @click="getCaptchaSrc"/>
-                    </Tooltip>
-                    <Input v-model="captchaCode" class="captcha-code"/>
-                  </div>
-                </template>
-                <Button type="warning" icon="edit" :loading="submitting" @click="submitCode"
-                        :disabled="problemSubmitDisabled || submitted"
-                        class="fl-right">
-                  <span v-if="submitting">{{$t('m.Submitting')}}</span>
-                  <span v-else>{{$t('m.Submit')}}</span>
-                </Button>
-              </Col>
-            </Row>
-          </Card>
-        </div>
-
-        <div id="right-column">
-          <Card id="info">
-            <template #title>
-              <div class="header">
-                <Icon type="ios-information-circle"></Icon>
-                <span class="card-title">{{$t('m.Information')}}</span>
-              </div>
-            </template>
-            <ul>
-              <li>
-                <p>ID</p>
-                <p>{{problem.displayId}}</p>
-              </li>
-              <li>
-                <p>{{$t('m.Time_Limit')}}</p>
-                <p>{{problem.timeLimit}}MS</p>
-              </li>
-              <li>
-                <p>{{$t('m.Memory_Limit')}}</p>
-                <p>{{problem.memoryLimit}}MB</p></li>
-              <li v-if="problem.difficulty">
-                <p>{{$t('m.Level')}}</p>
-                <p><Tag :color="({Low:'success',High:'warning',Mid:'primary'})[problem.difficulty]">{{$t('m.' + problem.difficulty)}}</Tag></p></li>
-              <li v-if="problem.total_score">
-                <p>{{$t('m.Score')}}</p>
-                <p>{{problem.total_score}}</p>
-              </li>
-              <li v-if="problem.totalScore">
-                <p>{{$t('m.Score')}}</p>
-                <p>{{problem.totalScore}}</p>
-              </li>
-            </ul>
-          </Card>
-        </div>
-      </div>
-      <XMUTFooter></XMUTFooter>
-  </Layout>
-</template>
-
 <script setup>
 import NavBar from '../components/NavBar.vue'
-import Panel from '../components/Panel.vue'
 import CodeMirror from '../components/CodeMirror.vue'
-import VerticalMenu from "../components/verticalMenu/verticalMenu.vue"
-import VerticalMenuItem from "../components/verticalMenu/verticalMenu-item.vue"
 import XMUTFooter from '../components/XMUTFooter.vue'
 import utils from '../utils'
+import {JUDGE_STATUS, DIFFICULTY_COLOR} from '../utils/constants'
+import {Modal, Copy} from 'view-ui-plus';
 
-import { ref, reactive, onMounted } from 'vue';
-import {pie, largePie} from '../utils/chartData'
-import i18n from '../i18n';
+import { ref, reactive, onMounted, computed } from 'vue';
 import api from '../api';
+import { refresh } from 'less';
 const statusVisible = ref(false);
-const captchaRequired = ref(false);
-const graphVisible = ref(false);
 const submissionExists = ref(false);
-const captchaCode = ref('');
-const captchaSrc = ref('');
-const contestID = ref('');
-const problemID = ref('');
+let submissionId = "";
+const result = reactive({ result: 9, });
+
 const submitting = ref(false);
+const submitted=ref(false);
+
+const split = ref(0.55);
+const problemID = ref('');
 const code = ref('');
 const language=ref('C++');
 const theme=ref('Clouds');
-const submissionId=ref('');
-const submitted=ref(false);
-const result = reactive({ result: 9, });
 const problemSubmitDisabled = ref(false);
 const problem = ref({
           title: '测试题',
@@ -157,32 +30,62 @@ const problem = ref({
           my_status: '',
           template: {},
           languages: [],
-          created_by: {
-            username: ''
-          },
           tags: [],
-          ioMode: {'io_mode': 'Standard IO'}
+          difficulty: "Low",
         });
-const pieOption = reactive(pie);
-const largePieOption = reactive(largePie);
-const largePieInitOpts = reactive({
-          width: '500',
-          height: '480' });
 
-const onCopy = function(){
-  console.log("copied");
-}
+let refreshTimer = 0;
 
-const onCopyError = function( ){
-  console.log("error");
+const copySample = function( t ){
+  Copy({text:t});
 }
 
 const onResetToTemplate = function(){
   console.log("reset template");
 }
 
+const onLanguageChanged = function(new_lang){
+  language.value = new_lang;
+}
+
+const checkSubmissionStatus = function(){
+  if( refreshTimer){
+    clearTimeout(refreshTimer);
+    refreshTimer = 0;
+  }
+  const checkStatus = () =>{
+    let id = submissionId;
+    clearTimeout(refreshTimer);  // 清掉timer
+    refreshTimer = 0;
+    console.log(id);
+    api.getSubmission(id)
+    .then(resp => {
+      result.value = resp.data;
+      if( result.value.result == 6 || result.value.result == 7){ // 表示测试没有完成
+        refreshTimer = setTimeout(checkStatus, 2000); // 继续检查
+        return;
+      }
+      submitting.value = false;
+      submitted.value = false;
+      return;
+    }, err =>{
+      submitting.value = false;
+    })
+  }
+  setTimeout(checkStatus, 2000);
+}
+
 const submitCode = function(){
-  //console.log(code.value);
+  if(code.value.trim() === ""){
+    Modal.error({
+      title:"错误",
+      content:"不能提交空代码！",
+    })
+    return;
+  }
+  submissionId = '';
+  result.value = {result: 9};
+  submitting.value = true;
   let data = {
     problemId:problemID.value,
     language: language.value,
@@ -190,8 +93,17 @@ const submitCode = function(){
   }
   api.submitCode(data)
   .then(resp => {
-    console.log(resp.data);
+    submissionId = resp.data.id;
+    submitting.value = false;
+    submissionExists.value = true;
+    submitted.value = true
+    statusVisible.value = true;
+    checkSubmissionStatus();
   })
+}
+
+const changeLanguage = function( new_lang ){
+  language.value = new_lang;
 }
 
 onMounted(() => {
@@ -202,37 +114,148 @@ onMounted(() => {
     code.value = problem.value.template[language.value];
   });
 })
+
+const submissionStatus = computed(()=> { 
+  return {
+    text: JUDGE_STATUS[result.value.result]['name'],
+    color: JUDGE_STATUS[result.value.result]['color']
+  };
+})
+
 </script>
+<template>
+  <Layout>
+      <NavBar :website="{website_name:'数据结构2022',allow_register:true}" :activeMenu="'/problemlist.html'" :user="{username:'tom'}"></NavBar>
+      <div class="split">
+        <Split v-model="split">
+            <template #left>
+              <Scroll :height="971" style="background-color: white;" class="split-panel">
+                <div class="markdown-body" id="problem-content">
+                  <div class="title-info">
+                    <h2>{{ problem.displayId }} - {{problem.title}}</h2>
+                    <div>
+                      <table>
+                        <tr>
+                          <th>{{$t('m.Time_Limit')}}</th>
+                          <th>{{$t('m.Memory_Limit')}}</th>
+                          <th>{{$t('m.Level')}}</th>
+                          <th>{{$t('m.Score')}}</th>
+                        </tr>
+                        <tr>
+                          <td>{{problem.timeLimit}}MS</td>
+                          <td>{{problem.memoryLimit}}MB</td>
+                          <td><Tag :color="DIFFICULTY_COLOR[problem.difficulty]">{{$t('m.' + problem.difficulty)}}</Tag></td>
+                          <td>{{problem.totalScore}}</td>
+                        </tr>
+                      </table>
+                    </div>
+                  </div>
+                  <p class="title">{{$t('m.Description')}}</p>
+                  <p class="content" v-html=problem.description></p>
+                  <p class="title">{{$t('m.Input')}}</p>
+                  <p class="content" v-html=problem.inputDescription></p>
+                  <p class="title">{{$t('m.Output')}}</p>
+                  <p class="content" v-html=problem.outputDescription></p>
+                  <div v-for="(sample, index) of problem.samples" :key="index">
+                    <div class="flex-container sample">
+                      <div class="sample-input">
+                        <p class="title">{{$t('m.Sample_Input')}} {{index + 1}}
+                          <a class="copy" @click="copySample(sample.input)">
+                            <Icon type="md-clipboard"></Icon>
+                          </a>
+                        </p>
+                        <pre>{{sample.input}}</pre>
+                      </div>
+                      <div class="sample-output">
+                        <p class="title">{{$t('m.Sample_Output')}} {{index + 1}}</p>
+                        <pre>{{sample.output}}</pre>
+                      </div>
+                    </div>
+                  </div>
+                  <div v-if="problem.hint">
+                    <p class="title">{{$t('m.Hint')}}</p>
+                    <Card dis-hover>
+                      <div class="content" v-html=problem.hint></div>
+                    </Card>
+                  </div>
+                  <div v-if="problem.source">
+                    <p class="title">{{$t('m.Source')}}</p>
+                    <p class="content">{{problem.source}}</p>
+                  </div>
+                </div>
+              </Scroll>
+            </template>
+            <template #right>
+              <div id="submit-code" class="split-panel">
+                <CodeMirror v-model="code"
+                            :languageSets="problem.languages"
+                            :defaultLanguage="language"
+                            :theme="theme"
+                            @resetCode="onResetToTemplate"
+                            @language-changed="onLanguageChanged"
+                            ></CodeMirror>
+                <Row type="flex" justify="space-between">
+                  <Col :span="10">
+                    <div class="status" v-if="statusVisible">
+                      <span>{{$t('m.Status')}}</span>
+                      <Tag :color="submissionStatus.color" size="medium" @click.native="console.log('');">
+                        {{$t('m.' + submissionStatus.text.replace(/ /g, "_"))}}
+                      </Tag>
+                    </div>
+                    <div v-if="problem.my_status === 0">
+                      <Alert type="success" show-icon>{{$t('m.You_have_solved_the_problem')}}</Alert>
+                    </div>
+                  </Col>
+
+                  <Col :span="12">
+                    <Button type="primary" icon="edit" :loading="submitting" @click="submitCode"
+                            :disabled="problemSubmitDisabled || submitted"
+                            class="fl-right">
+                      <span v-if="submitting">{{$t('m.Submitting')}}</span>
+                      <span v-else>{{$t('m.Submit')}}</span>
+                    </Button>
+                  </Col>
+                </Row>
+              </div>
+            </template>
+        </Split>
+      </div>
+      <XMUTFooter></XMUTFooter>
+  </Layout>
+</template>
+
 
 <style lang="less" scoped>
-  .card-title {
-    margin-left: 8px;
+  .split {
+    margin-top: 70px;
+    height: 970px;
+    border: 1px solid #dcdee2;
   }
 
-  .flex-container {
-    #problem-main {
-      flex: auto;
-      //margin-right: 18px;
-      margin-right: 300px;
-      margin-left: 40px;
-    }
-    #right-column {
-      flex: none;
-      position: fixed;
-      right: 0px;
-      width: 220px;
-      margin-top: 80px;
-      margin-right:40px;
-    }
+  .split-panel {
+    padding: 0px 10px;
   }
 
   #problem-content {
-    margin-top: -50px;
+    background-color: white;
+    padding: 10px 40px 40px 20px;
+    .title-info {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      th{
+        padding-top:5px;
+      }
+      td{
+        text-align: center;
+        border: none;
+      }
+    }
     .title {
       font-size: 20px;
       font-weight: 400;
       margin: 25px 0 8px 0;
-      color: #3091f2;
+      color: var(--xmut-cs-color);
       .copy {
         padding-left: 8px;
       }
@@ -256,13 +279,14 @@ onMounted(() => {
         align-self: stretch;
         border-style: solid;
         background: transparent;
+        font-family:"Consolas";
       }
     }
   }
 
   #submit-code {
-    margin-top: 20px;
-    margin-bottom: 20px;
+    padding-left: 20px;
+    padding-top: 10px;
     .status {
       float: left;
       span {
@@ -303,6 +327,7 @@ onMounted(() => {
 
   .fl-right {
     float: right;
+    margin-right: 20px;
   }
 
   #pieChart {

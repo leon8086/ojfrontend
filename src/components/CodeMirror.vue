@@ -26,7 +26,7 @@
       </Col>
     </Row>
     <codemirror
-      v-model="props.modelValue"
+      v-model="code"
       placeholder=""
       :style="style"
       :indent-with-tab="true"
@@ -34,6 +34,7 @@
       :extensions="extensions"
       @ready="handleReady"
       @change="codeChanged"
+      @input="codeChanged"
     />
   </div>
 </template>
@@ -73,7 +74,7 @@
       },
       style:{
         type:Object,
-        default:{height:'300px'}
+        default:{height:'830px'}
       }
     },
     setup(props, ctx) {
@@ -87,7 +88,7 @@
       let lang_comp = new Compartment;
       let theme_comp = new Compartment;
       const style = {
-        fontSize: '110%',
+        fontSize: '100%',
       }
       Object.assign(style, props.style);
       let theme_options = [
@@ -99,8 +100,7 @@
         { id:'5',title:'Github',theme:githubLight},
         { id:'6',title:'Github(dark)',theme:githubDark},
       ]
-      //const code = ref(props.modelValue);
-      console.log(props.modelValue);
+      const code = ref(props.modelValue);
       const extensions = [lang_comp.of(cpp()), theme_comp.of(clouds)]
 
       let getDefaultLanguage = function( defLang, LangSet){
@@ -122,12 +122,21 @@
       watch(()=>props.languageSets,(newVal, oldVal)=>{
         language.value = getDefaultLanguage(props.defaultLanguage, props.languageSets);
       })
+
+      watch(()=>props.modelValue,(newVal, oldVal) =>{
+        code.value = newVal;
+      })
+
+      watch(code,(newVal, oldVal) =>{
+        ctx.emit("update:modelValue", code.value);
+      })
+
+      watch(language, (newVal, oldVal) =>{
+        ctx.emit("languageChanged", language.value)
+      })
       
-      //watch(props.modelValue, ()=>{
-      //  ctx.emit("update:modelValue", props.modelValue);
-      //})
       let codeChanged = function(){
-        ctx.emit("update:modelValue", props.modelValue);
+        ctx.emit("update:modelValue", code.value);
       }
 
       // Codemirror EditorView instance ref
@@ -147,6 +156,7 @@
 
       return {
         props,
+        code,
         extensions,
         optChanged,
         handleReady,
@@ -180,5 +190,8 @@
   }
   .cm-editor{
     border: solid lightgray thin;
+  }
+  .fl-right{
+    margin-right: 20px;
   }
 </style>

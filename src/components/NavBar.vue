@@ -10,11 +10,11 @@
         <Icon type="ios-keypad"></Icon>
         {{$t('m.NavProblems')}}
       </Menu-item>
-      <Menu-item name="/contest">
+      <!-- <Menu-item name="/contest">
         <Icon type="ios-list-box"></Icon>
         {{$t('m.Contests')}}
-      </Menu-item>
-      <Menu-item name="/status">
+      </Menu-item> -->
+      <Menu-item name="/submissionlist.html">
         <Icon type="ios-pulse"></Icon>
         {{$t('m.NavStatus')}}
       </Menu-item>
@@ -118,6 +118,8 @@
       font-size: 20px;
       float: left;
       line-height: 60px;
+      color: var(--xmut-cs-color);
+      font-weight: bolder;
     }
 
     .drop-menu {

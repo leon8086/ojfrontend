@@ -194,9 +194,9 @@ export const m = {
   Total_Score: '总分',
   // ProblemList.vue
   Problem_List: '问题列表',
-  High: '高',
-  Mid: '中',
-  Low: '低',
+  High: '进阶',
+  Mid: '普通',
+  Low: '入门',
   All: '全部',
   Reset: '重置',
   Pick_One: '选择',

@@ -91,9 +91,9 @@ export const m = {
   Source: '来源',
   Edit_Problem: '编辑问题',
   Add_Problem: '添加问题',
-  High: '高',
-  Mid: '中',
-  Low: '低',
+  High: '进阶',
+  Mid: '普通',
+  Low: '入门',
   Tag: '标签',
   New_Tag: '新增标签',
   // ProblemList.vue

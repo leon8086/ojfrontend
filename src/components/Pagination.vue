@@ -5,12 +5,14 @@
           @on-change="onChange"
           @on-page-size-change="onPageSizeChange"
           :show-sizer="showSizer"
-          :page-size-opts="[10, 30, 50, 100, 200]"
+          :page-size-opts="pageSizeOpts"
           :current="current"></Page>
   </div>
 </template>
 
 <script setup>
+import { List } from 'echarts';
+
 defineProps({
     total: {
       required: true,
@@ -28,6 +30,9 @@ defineProps({
     current: {
       required: false,
       type: Number
+    },
+    pageSizeOpts:{
+      default:[15, 30, 60, 120, 200]
     }
 })
 

@@ -12,7 +12,7 @@ export default {
     },
     getProblemDetail( id ){
         return get('problem/detail',{
-            params: {id:id}
+            params: {id}
         });
     },
     getTags(){
@@ -22,6 +22,16 @@ export default {
         return post('submission/submit',{
             data
         });
+    },
+    getSubmission(id){
+        return post('submission/get',{
+            data:{id}
+        })
+    },
+    getSubmissionList( query ){
+        return get('submission/list',{
+            params: query,
+        })
     }
 };
 
