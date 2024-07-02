@@ -1,5 +1,7 @@
 <template>
-    <Footer class="layout-footer-center">2023 &copy; XMUT计算机与信息工程学院</Footer>
+    <div>
+        <Footer class="layout-footer-center">2023 &copy; XMUT计算机与信息工程学院</Footer>
+    </div>
 </template>
 
 <script setup>

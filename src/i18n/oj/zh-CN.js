@@ -2,6 +2,7 @@ export const m = {
     // 404.vue
   Go_Home: '返回主页',
   // Problem.vue
+  HaveACed:'已解决',
   Description: '题目描述',
   Input: '输入',
   Output: '输出',
@@ -19,6 +20,7 @@ export const m = {
   Tags: '标签',
   Show: '显示',
   Submit: '提交',
+  Submitter: '提交者',
   Submitting: '正在提交',
   Judging: '正在评分',
   Wrong_Answer: '答案错误',
@@ -147,7 +149,7 @@ export const m = {
   Home: '首页',
   NavProblems: '题库',
   Contests: '测试',
-  NavStatus: '提交状态',
+  NavStatus: '我的提交',
   Rank: '排名',
   ACM_Rank: 'ACM 排名',
   OI_Rank: 'OI 排名',

@@ -54,6 +54,7 @@ let onPageSizeChange = function(pageSize) {
 <style scoped lang="less">
   .page {
     margin: 20px;
-    float: right;
+    display: flex;
+    justify-content: right;
   }
 </style>

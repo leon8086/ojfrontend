@@ -9,11 +9,12 @@ function utcToLocal (utcDt, format = 'YYYY-M-D  HH:mm:ss') {
 function duration (startTime, endTime) {
   let start = moment(startTime)
   let end = moment(endTime)
-  let duration = moment.duration(start.diff(end, 'seconds'), 'seconds')
+  let duration = moment.duration(end.diff(start, 'seconds'), 'seconds')
   if (duration.days() !== 0) {
-    return duration.humanize()
+    return duration.days().toString()+"天";
   }
-  return Math.abs(duration.asHours().toFixed(1)) + ' hours'
+  let texts = [Math.floor(duration.asHours()), duration.minutes(), duration.seconds()];
+  return texts.join(":");
 }
 
 function secondFormat (seconds) {

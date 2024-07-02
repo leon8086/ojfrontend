@@ -3,7 +3,7 @@ export const JUDGE_STATUS = {
     name: 'Compile Error',
     short: 'CE',
     color: 'purple',
-    type: 'warning'
+    type: 'info'
   },
   '-1': {
     name: 'Wrong Answer',
@@ -50,7 +50,7 @@ export const JUDGE_STATUS = {
   '6': {
     name: 'Pending',
     color: 'blue',
-    type: 'warning'
+    type: 'info'
   },
   '7': {
     name: 'Judging',
@@ -61,7 +61,7 @@ export const JUDGE_STATUS = {
     name: 'Partial Accepted',
     short: 'PAC',
     color: 'orange',
-    type: 'info'
+    type: 'warning'
   },
   '9': {
     name: 'Submitting',

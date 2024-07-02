@@ -1,8 +1,8 @@
 <script setup>
-import NavBar from '../components/NavBar.vue'
-import Panel from '../components/Panel.vue'
-import Pagination from '../components/Pagination.vue'
-import XMUTFooter from '../components/XMUTFooter.vue'
+import NavBar from '@/components/NavBar.vue'
+import TitledPanel from '@/components/TitledPanel.vue'
+import Pagination from '@/components/Pagination.vue'
+import XMUTFooter from '@/components/XMUTFooter.vue'
 
 import { ref, reactive, onMounted, resolveComponent } from 'vue';
 import { JUDGE_STATUS, USER_TYPE } from '../utils/constants'
@@ -10,7 +10,6 @@ import utils from '../utils/utils'
 import time from '../utils/time'
 import i18n from '../i18n';
 import api from '../api'
-import { parseGeoJSON } from 'echarts';
 
 const title = ref("提交记录");
 
@@ -32,7 +31,7 @@ const columns = ref([
     title: i18n.global.t('m.ID'),
     align: 'center',
     render: (h, params) => {
-        return h('a',{ href:"#"}, params.row.id.slice(0, 10));
+        return h('a',{ href:"/submission.html?id="+params.row.id}, params.row.id.slice(0, 10));
     }
   },
   {
@@ -51,7 +50,7 @@ const columns = ref([
     render: (h, params) => {
       return h('a',
         {
-          href:"",
+          href:"/problem.html?id="+params.row.voProblemBrief.id,
           title:params.row.voProblemBrief.title,
         },
         params.row.voProblemBrief.displayId );
@@ -93,7 +92,7 @@ const columns = ref([
 const loadingTable = ref(false);
 const submissions = ref([]);
 const total = ref(30);
-const limit = ref(20);
+const limit = ref(15);
 const page = ref(1);
 const contestId = ref('');
 const problemId = ref('');
@@ -181,13 +180,13 @@ onMounted(()=>{
 </script>
 
 <template>
-  <NavBar :website="{website_name:'数据结构2022',allow_register:true}" :activeMenu="'/submissionlist.html'" :user="{username:'tom'}"></NavBar>
-  <div class="flex-container">
-    <div id="main">
-      <Panel shadow>
+  <NavBar :activeMenu="'/submissionlist.html'"></NavBar>
+  <div class="content-app">
+    <Content :style="{ padding: '0 50px' }">
+      <TitledPanel shadow class="main">
         <template #title>
           <div>
-            {{title}}
+            {{ title }}
           </div>
         </template>
         <template #extra>
@@ -234,10 +233,13 @@ onMounted(()=>{
         </template>
 
         <Table stripe :disabled-hover="true" :columns="columns" :data="submissions" :loading="loadingTable"></Table>
-        <Pagination @on-page-size-change="getSubmissions" @on-change="getSubmissions" :total="total" v-model:page-size="limit" v-model:current.sync="page" :show-sizer=true :page-size-opts="[20,40,80,160]"></Pagination>
-      </Panel>
-    </div>
+        <Pagination @on-page-size-change="getSubmissions" @on-change="getSubmissions" :total="total"
+          v-model:page-size="limit" v-model:current.sync="page" :show-sizer=true>
+        </Pagination>
+      </TitledPanel>
+    </Content>
   </div>
+  <XMUTFooter></XMUTFooter>
 </template>
 
 <style scoped lang="less">
@@ -260,5 +262,9 @@ onMounted(()=>{
     flex: none;
     width: 210px;
   }
+}
+
+.main{
+  padding-bottom: 5px;
 }
 </style>

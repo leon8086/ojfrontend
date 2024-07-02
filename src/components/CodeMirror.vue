@@ -4,12 +4,12 @@
       <Col :span=12>
       <div>
         <span>{{$t('m.Language')}}:</span>
-        <Select v-model="language" @on-change="optChanged" class="adjust">
+        <Select v-model="language" @on-change="optChanged" class="adjust" :disabled="disabled">
           <Option v-for="(item, index) in props.languageSets" :key="index" :value="item">{{item}}
           </Option>
         </Select>
 
-        <Tooltip :content="this.$i18n.t('m.Reset_to_default_code_definition')" placement="top" style="margin-left: 10px">
+        <Tooltip v-if="!disabled":content="$i18n.t('m.Reset_to_default_code_definition')" placement="top" style="margin-left: 10px">
           <Button icon="ios-refresh" @click="onResetClick"></Button>
         </Tooltip>
 
@@ -32,6 +32,7 @@
       :indent-with-tab="true"
       :tab-size="4"
       :extensions="extensions"
+      :disabled="disabled"
       @ready="handleReady"
       @change="codeChanged"
       @input="codeChanged"
@@ -74,7 +75,11 @@
       },
       style:{
         type:Object,
-        default:{height:'830px'}
+        default:{height:'655px'}
+      },
+      disabled:{
+        type: Boolean,
+        default: false,
       }
     },
     setup(props, ctx) {

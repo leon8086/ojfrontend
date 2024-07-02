@@ -1,8 +1,8 @@
 <script setup>
-import NavBar from '../components/NavBar.vue'
-import Panel from '../components/Panel.vue'
-import Pagination from '../components/Pagination.vue'
-import XMUTFooter from '../components/XMUTFooter.vue'
+import NavBar from '@/components/NavBar.vue'
+import TitledPanel from '@/components/TitledPanel.vue'
+import Pagination from '@/components/Pagination.vue'
+import XMUTFooter from '@/components/XMUTFooter.vue'
 
 import { ref, reactive, onMounted, resolveComponent } from 'vue';
 import {DIFFICULTY_COLOR} from '../utils/constants';
@@ -15,62 +15,62 @@ const query = reactive({difficulty:'',keyword:'',tag:'', page:1, limit:15, total
 const loadings = reactive({table:true, tag:false});
 const tagList = ref([]);
 const problemTableColumns = reactive([
-          {
-            title:' ',
-            width: 60,
-          },
-          {
-            title: '#',
-            width: 120,
-            render:(h,params) =>{
-              return h('a',{
-                href:"/problem?tid="+params.row.titleId,
-              },{
-                default(){
-                  return params.row.displayId;
-                }
-              })
-            }
-          },
-          {
-            title: i18n.global.t("m.Title"),
-            render:(h,params) =>{
-              return h('a',{
-                href:"/problem.html?id="+params.row.id,
-              },{
-                default(){
-                  return params.row.title;
-                }
-              })
-            }
-          },
-          {
-            title: i18n.global.t("m.Level"),
-            width: 120,
-            render:(h, params) =>{
-              let t = params.row.difficulty;
-              let color = DIFFICULTY_COLOR[t];
-              return h(resolveComponent('Tag'),{
-                color: color,
-              },{
-                default(){
-                  return i18n.global.t('m.'+params.row.difficulty);
-                }
-              })
-            },
-          },
-          {
-            title: i18n.global.t('m.Total'),
-            key: 'submissionNumber',
-            className:'table-cell-center',
-          },
-          {
-            title: i18n.global.t('m.AC_Rate'),
-            className:'table-cell-center',
-            render: (h, params) =>{
-              return h('span', utils.getACRate(params.row.acceptedNumber, params.row.submissionNumber));
-            }
-          },
+  {
+    title: ' ',
+    width: 60,
+  },
+  {
+    title: '#',
+    width: 120,
+    render: (h, params) => {
+      return h('a', {
+        href: "/problem?tid=" + params.row.titleId,
+      }, {
+        default() {
+          return params.row.displayId;
+        }
+      })
+    }
+  },
+  {
+    title: i18n.global.t("m.Title"),
+    render: (h, params) => {
+      return h('a', {
+        href: "/problem.html?id=" + params.row.id,
+      }, {
+        default() {
+          return params.row.title;
+        }
+      })
+    }
+  },
+  {
+    title: i18n.global.t("m.Level"),
+    width: 120,
+    render: (h, params) => {
+      let t = params.row.difficulty;
+      let color = DIFFICULTY_COLOR[t];
+      return h(resolveComponent('Tag'), {
+        color: color,
+      }, {
+        default() {
+          return i18n.global.t('m.' + params.row.difficulty);
+        }
+      })
+    },
+  },
+  {
+    title: i18n.global.t('m.Total'),
+    key: 'submissionNumber',
+    className: 'table-cell-center',
+  },
+  {
+    title: i18n.global.t('m.AC_Rate'),
+    className: 'table-cell-center',
+    render: (h, params) => {
+      return h('span', utils.getACRate(params.row.acceptedNumber, params.row.submissionNumber));
+    }
+  },
 ]);
 
 let handleTagsVisible = function (value) {
@@ -158,12 +158,12 @@ onMounted(() => {
 
 <template>
   <Layout>
-      <NavBar :website="{website_name:'数据结构2022',allow_register:true}" :activeMenu="'/problemlist.html'" :user="{username:'tom'}"></NavBar>
+      <NavBar :activeMenu="'/problemlist.html'"></NavBar>
       <div class="content-app">
       <Content :style="{padding:'0 50px'}">
         <Row type="flex" :gutter="18">
           <Col :span=19>
-          <Panel>
+          <TitledPanel>
             <template #title>
               <div>
                 {{$t('m.Problem_List')}}
@@ -220,13 +220,13 @@ onMounted(() => {
                   :no-data-text="`<tr>没有题目</tr>`"
                   :no-filtered-data-text="`<tr>没有题目</tr>`"
                   disabled-hover></Table>
-          </Panel>
           <Pagination @on-page-size-change="pageSizeChanged" :show-sizer="true" :total="query.total" v-model:page-size="query.limit"  @on-change="pageChanged" v-model:current="query.page"></Pagination>
+          </TitledPanel>
 
           </Col>
 
           <Col :span="5">
-          <Panel :padding="10">
+          <TitledPanel :padding="10">
             <template #title>
               <div slot="title" class="taglist-title">{{$t('m.Tags')}}</div>
             </template>
@@ -237,7 +237,7 @@ onMounted(() => {
                     shape="circle"
                     class="tag-btn">{{tag.name}}
             </Button>
-          </Panel>
+          </TitledPanel>
           <Spin v-if="loadings.tag" fix size="large"></Spin>
           </Col>
         </Row>

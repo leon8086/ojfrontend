@@ -1,14 +1,14 @@
 <script setup>
-import NavBar from '../components/NavBar.vue'
-import CodeMirror from '../components/CodeMirror.vue'
-import XMUTFooter from '../components/XMUTFooter.vue'
-import utils from '../utils'
+import NavBar from '@/components/NavBar.vue'
+import CodeMirror from '@/components/CodeMirror.vue'
+import XMUTFooter from '@/components/XMUTFooter.vue'
+import TitledPanel from '@/components/TitledPanel.vue'
+import utils from '@/utils'
 import {JUDGE_STATUS, DIFFICULTY_COLOR} from '../utils/constants'
 import {Modal, Copy} from 'view-ui-plus';
 
 import { ref, reactive, onMounted, computed } from 'vue';
 import api from '../api';
-import { refresh } from 'less';
 const statusVisible = ref(false);
 const submissionExists = ref(false);
 let submissionId = "";
@@ -57,8 +57,7 @@ const checkSubmissionStatus = function(){
     let id = submissionId;
     clearTimeout(refreshTimer);  // 清掉timer
     refreshTimer = 0;
-    console.log(id);
-    api.getSubmission(id)
+    api.getSubmissionResult(id)
     .then(resp => {
       result.value = resp.data;
       if( result.value.result == 6 || result.value.result == 7){ // 表示测试没有完成
@@ -115,7 +114,7 @@ onMounted(() => {
   });
 })
 
-const submissionStatus = computed(()=> { 
+const submissionStatus = computed(()=> {
   return {
     text: JUDGE_STATUS[result.value.result]['name'],
     color: JUDGE_STATUS[result.value.result]['color']
@@ -124,116 +123,124 @@ const submissionStatus = computed(()=> {
 
 </script>
 <template>
-  <Layout>
-      <NavBar :website="{website_name:'数据结构2022',allow_register:true}" :activeMenu="'/problemlist.html'" :user="{username:'tom'}"></NavBar>
-      <div class="split">
-        <Split v-model="split">
+  <NavBar :activeMenu="'/problemlist.html'"></NavBar>
+  <div class="content-app">
+    <Content :style="{padding:'0 50px'}">
+      <TitledPanel>
+        <template #title>
+          <div class="title">
+            {{ problem.displayId }} - {{problem.title}}
+          </div>
+        </template>
+        <template #extra>
+          <div class="info">
+            <table>
+              <tr>
+                <td>{{ $t('m.Time_Limit') }}：{{ problem.timeLimit }}MS</td>
+                <td>{{ $t('m.Memory_Limit') }}：{{ problem.memoryLimit }}MB</td>
+                <td>{{ $t('m.Level') }}：
+                  <Tag :color="DIFFICULTY_COLOR[problem.difficulty]">{{ $t('m.' + problem.difficulty) }}</Tag>
+                </td>
+                <td>{{ $t('m.Score') }}：{{ problem.totalScore }}</td>
+                <td>{{ $t('m.HaveACed') }}</td>
+              </tr>
+            </table>
+          </div>
+        </template>
+        <div class="split">
+          <Split v-model="split">
             <template #left>
-              <Scroll :height="971" style="background-color: white;" class="split-panel">
+              <Scroll :height="780" style="background-color: white;" class="split-panel">
                 <div class="markdown-body" id="problem-content">
-                  <div class="title-info">
-                    <h2>{{ problem.displayId }} - {{problem.title}}</h2>
-                    <div>
-                      <table>
-                        <tr>
-                          <th>{{$t('m.Time_Limit')}}</th>
-                          <th>{{$t('m.Memory_Limit')}}</th>
-                          <th>{{$t('m.Level')}}</th>
-                          <th>{{$t('m.Score')}}</th>
-                        </tr>
-                        <tr>
-                          <td>{{problem.timeLimit}}MS</td>
-                          <td>{{problem.memoryLimit}}MB</td>
-                          <td><Tag :color="DIFFICULTY_COLOR[problem.difficulty]">{{$t('m.' + problem.difficulty)}}</Tag></td>
-                          <td>{{problem.totalScore}}</td>
-                        </tr>
-                      </table>
-                    </div>
-                  </div>
-                  <p class="title">{{$t('m.Description')}}</p>
+                  <p class="title">{{ $t('m.Description') }}</p>
                   <p class="content" v-html=problem.description></p>
-                  <p class="title">{{$t('m.Input')}}</p>
+                  <p class="title">{{ $t('m.Input') }}</p>
                   <p class="content" v-html=problem.inputDescription></p>
-                  <p class="title">{{$t('m.Output')}}</p>
+                  <p class="title">{{ $t('m.Output') }}</p>
                   <p class="content" v-html=problem.outputDescription></p>
                   <div v-for="(sample, index) of problem.samples" :key="index">
                     <div class="flex-container sample">
                       <div class="sample-input">
-                        <p class="title">{{$t('m.Sample_Input')}} {{index + 1}}
+                        <p class="title">{{ $t('m.Sample_Input') }} {{ index + 1 }}
                           <a class="copy" @click="copySample(sample.input)">
                             <Icon type="md-clipboard"></Icon>
                           </a>
                         </p>
-                        <pre>{{sample.input}}</pre>
+                        <pre>{{ sample.input }}</pre>
                       </div>
                       <div class="sample-output">
-                        <p class="title">{{$t('m.Sample_Output')}} {{index + 1}}</p>
-                        <pre>{{sample.output}}</pre>
+                        <p class="title">{{ $t('m.Sample_Output') }} {{ index + 1 }}</p>
+                        <pre>{{ sample.output }}</pre>
                       </div>
                     </div>
                   </div>
                   <div v-if="problem.hint">
-                    <p class="title">{{$t('m.Hint')}}</p>
+                    <p class="title">{{ $t('m.Hint') }}</p>
                     <Card dis-hover>
                       <div class="content" v-html=problem.hint></div>
                     </Card>
-                  </div>
-                  <div v-if="problem.source">
-                    <p class="title">{{$t('m.Source')}}</p>
-                    <p class="content">{{problem.source}}</p>
                   </div>
                 </div>
               </Scroll>
             </template>
             <template #right>
               <div id="submit-code" class="split-panel">
-                <CodeMirror v-model="code"
-                            :languageSets="problem.languages"
-                            :defaultLanguage="language"
-                            :theme="theme"
-                            @resetCode="onResetToTemplate"
-                            @language-changed="onLanguageChanged"
-                            ></CodeMirror>
+                <CodeMirror v-model="code" :languageSets="problem.languages" :defaultLanguage="language" :theme="theme"
+                  @resetCode="onResetToTemplate" @language-changed="onLanguageChanged"></CodeMirror>
                 <Row type="flex" justify="space-between">
                   <Col :span="10">
-                    <div class="status" v-if="statusVisible">
-                      <span>{{$t('m.Status')}}</span>
-                      <Tag :color="submissionStatus.color" size="medium" @click.native="console.log('');">
-                        {{$t('m.' + submissionStatus.text.replace(/ /g, "_"))}}
-                      </Tag>
-                    </div>
-                    <div v-if="problem.my_status === 0">
-                      <Alert type="success" show-icon>{{$t('m.You_have_solved_the_problem')}}</Alert>
-                    </div>
+                  <div class="status" v-if="statusVisible">
+                    <span>{{ $t('m.Status') }}</span>
+                    <Tag :color="submissionStatus.color" size="medium" @click.native="console.log('');">
+                      {{ $t('m.' + submissionStatus.text.replace(/ /g, "_")) }}
+                    </Tag>
+                  </div>
+                  <div v-if="problem.my_status === 0">
+                    <Alert type="success" show-icon>{{ $t('m.You_have_solved_the_problem') }}</Alert>
+                  </div>
                   </Col>
 
                   <Col :span="12">
-                    <Button type="primary" icon="edit" :loading="submitting" @click="submitCode"
-                            :disabled="problemSubmitDisabled || submitted"
-                            class="fl-right">
-                      <span v-if="submitting">{{$t('m.Submitting')}}</span>
-                      <span v-else>{{$t('m.Submit')}}</span>
-                    </Button>
+                  <Button type="primary" icon="edit" :loading="submitting" @click="submitCode"
+                    :disabled="problemSubmitDisabled || submitted" class="fl-right">
+                    <span v-if="submitting">{{ $t('m.Submitting') }}</span>
+                    <span v-else>{{ $t('m.Submit') }}</span>
+                  </Button>
                   </Col>
                 </Row>
               </div>
             </template>
-        </Split>
-      </div>
-      <XMUTFooter></XMUTFooter>
-  </Layout>
+          </Split>
+        </div>
+      </TitledPanel>
+    </Content>
+  </div>
+  <XMUTFooter></XMUTFooter>
 </template>
 
 
 <style lang="less" scoped>
   .split {
-    margin-top: 70px;
-    height: 970px;
+    height: 780px;
     border: 1px solid #dcdee2;
   }
 
   .split-panel {
     padding: 0px 10px;
+  }
+
+  .title{
+    color: var(--xmut-cs-color);
+    font-weight: bolder;
+  }
+
+  .info{
+    table{
+      td{
+        padding-right:5px;
+        padding-left:5px;
+      }
+    }
   }
 
   #problem-content {
@@ -324,27 +331,7 @@ const submissionStatus = computed(()=> {
       }
     }
   }
-
   .fl-right {
     float: right;
-    margin-right: 20px;
-  }
-
-  #pieChart {
-    .echarts {
-      height: 250px;
-      width: 210px;
-    }
-    #detail {
-      position: absolute;
-      right: 10px;
-      top: 10px;
-    }
-  }
-
-  #pieChart-detail {
-    margin-top: 20px;
-    width: 500px;
-    height: 480px;
   }
 </style>
