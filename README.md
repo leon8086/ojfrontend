@@ -1,7 +1,72 @@
-# Vue 3 + Vite
+# TODO: List
 
-This template should help get you started developing with Vue 3 in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
+# 登录
 
-## Recommended IDE Setup
+# OJ端
 
-- [VS Code](https://code.visualstudio.com/) + [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur) + [TypeScript Vue Plugin (Volar)](https://marketplace.visualstudio.com/items?itemName=Vue.vscode-typescript-vue-plugin).
+## 主页
+- [ ] 考试
+- [x] 作业
+
+## 题库
+- [x] 题库列表
+- [x] 题目展示
+- [x] 提交
+- [ ] 标签
+
+## 考试
+- [ ] 列表
+- [x] 考试界面
+- [ ] 排名
+- [ ] 提交信息
+
+## 作业
+- [ ] 作业列表
+- [ ] 作业提交
+- [ ] 分数统计
+
+## 提交信息
+- [x] 提交列表
+- [x] 提交信息
+- [ ] 重评
+
+## 排名
+- [ ] 年级排名
+- [ ] 班级排名
+- [ ] 总排名
+
+## 用户管理
+- [ ] 用户主页
+- [ ] 用户设置
+- [x] 退出
+
+# 管理端
+
+## 通用管理
+
+## 班级管理
+- [x] 班级列表
+- [x] 创建班级
+- [x] 导入学生
+- [ ] 学生管理
+
+## 用户管理
+- [x] 用户列表
+- [x] 导入用户
+- [ ] 删除用户
+- [ ] 重置密码
+
+## 题目管理
+- [ ] 题目列表
+- [ ] 编辑题目
+- [ ] 导入题目
+
+## 考试管理
+- [x] 考试列表
+- [x] 考试编辑
+- [ ] 关闭考试
+
+## 作业管理
+- [ ] 作业列表
+- [ ] 作业编辑
+- [ ] 作业完成情况

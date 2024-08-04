@@ -1,5 +1,5 @@
 <template>
-  <Card :padding="padding" :shadow="shadow" :dis-hover="disHover" :bordered="bordered">
+  <Card :padding="padding" :shadow="shadow" :dis-hover="disHover" :bordered="bordered" style="margin-bottom:20px">
     <template v-for="(value, name) in slots" #[name]="scope">
       <div :class="'panel-'+name">
         <slot :name="name" v-bind="scope || {}"></slot>

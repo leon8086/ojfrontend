@@ -6,7 +6,9 @@
           @on-page-size-change="onPageSizeChange"
           :show-sizer="showSizer"
           :page-size-opts="pageSizeOpts"
-          :current="current"></Page>
+          :current="current"
+          v-bind="$attrs"
+          ></Page>
   </div>
 </template>
 

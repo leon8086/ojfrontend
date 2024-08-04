@@ -108,9 +108,15 @@ export const CONTEST_TYPE = {
 }
 
 export const USER_TYPE = {
-  REGULAR_USER: 'Regular User',
-  ADMIN: 'Admin',
-  SUPER_ADMIN: 'Super Admin'
+  REGULAR_USER: 9,
+  ADMIN: 2,
+  SUPER_ADMIN: 1,
+}
+
+export const USER_TYPE_INFO = {
+  1:{id:1, name:"超级用户",color:"error"},
+  2:{id:2, name:"管理员",color:"success"},
+  9:{id:9, name:"普通用户",color:"default"},
 }
 
 export const PROBLEM_PERMISSION = {

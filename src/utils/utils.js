@@ -2,6 +2,7 @@
 import storage from '../utils/storage'
 import { STORAGE_KEY } from '../utils/constants'
 import ojAPI from '../api'
+import papa from 'papaparse';
 
 export default {
   submissionMemoryFormat(memory) {
@@ -103,4 +104,42 @@ export default {
       })
     })
   },
+
+  importUsersCSV( file, exists ){
+    return new Promise(( resolve, reject) =>{
+      papa.parse(file, {
+        complete: (res) => {
+          if (res.data[res.data.length - 1].length == 1) {
+            res.data.pop();  // 去除最后一个 [""] 的空项
+          }
+          let failed = [];
+          let valid = [];
+          res.data.forEach(item => {
+            let user = { username: item[0], password: item[1], email: item[2], realName: item[3], grade: item[4] };
+            if (user.username == "") {
+              user.error = "缺少用户名";
+              failed.push(user);
+              return;
+            }
+            if (user.password == "") {
+              user.error = "缺少密码";
+              failed.push(user);
+              return;
+            }
+            if (exists.includes(user.username)) {
+              user.error = "用户名重复";
+              failed.push(user);
+              return;
+            }
+            exists.push(user.username);
+            valid.push(user);
+          })
+          resolve({valid, failed});
+        },
+        error( err ){
+          reject(err);
+        }
+      })
+    })
+  }
 };

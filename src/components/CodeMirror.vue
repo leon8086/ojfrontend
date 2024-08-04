@@ -1,6 +1,6 @@
 <template>
   <div style="margin: 0px 0px 15px 0px">
-    <Row type="flex" justify="space-between" class="header">
+    <Row type="flex" justify="space-between" class="header" v-if="!noHeader">
       <Col :span=12>
       <div>
         <span>{{$t('m.Language')}}:</span>
@@ -49,8 +49,8 @@
   import { python } from '@codemirror/lang-python';
   import { java } from '@codemirror/lang-java';
   import { clouds, tomorrow, dracula, cobalt, boysAndGirls } from 'thememirror';
-  import {githubLight} from '@ddietr/codemirror-themes/github-light';
-  import {githubDark} from '@ddietr/codemirror-themes/github-dark';
+  import { githubLight } from '@ddietr/codemirror-themes/github-light';
+  import { githubDark } from '@ddietr/codemirror-themes/github-dark';
   export default defineComponent({
     components: {
       Codemirror
@@ -65,7 +65,7 @@
           'C',
           'C++',
           'Java',
-          'Python',
+          'Python3',
           'JavaScript',
         ]
       },
@@ -80,6 +80,10 @@
       disabled:{
         type: Boolean,
         default: false,
+      },
+      noHeader:{
+        type:Boolean,
+        default: false,
       }
     },
     setup(props, ctx) {
@@ -87,7 +91,7 @@
         "C": cpp(),
         "C++": cpp(),
         "Java": java(),
-        "Python": python(),
+        "Python3": python(),
         "JavaScript": javascript(),
       };
       let lang_comp = new Compartment;
@@ -139,7 +143,7 @@
       watch(language, (newVal, oldVal) =>{
         ctx.emit("languageChanged", language.value)
       })
-      
+
       let codeChanged = function(){
         ctx.emit("update:modelValue", code.value);
       }

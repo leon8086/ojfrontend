@@ -85,7 +85,6 @@ export default{
       }
       for( let i=0; i<this.problemSet.length; ++i ){
         let p = this.problemSet[i];
-        console.log(p.quantity, p.problems);
         if(p.quantity > Object.keys(p.problems)){
           this.$Message.error("第"+(i+1).toString()+"题，未提供足够的抽题范围");
           return false;
@@ -109,18 +108,11 @@ export default{
           createdById: 1,
           startTime: this.formValue.timeRange[0],
           endTime: this.formValue.timeRange[1],
-          problemConfig: [],
-        }
-        for (let i = 0; i < this.problemSet.length; ++i) {
-          let problems = [];
-          for (let j in this.problemSet[i].problems ) {
-            problems.push(j)
-          }
-          params.problemConfig.push({ quantity: this.problemSet[i].quantity, problems: problems });
+          problemConfig: this.problemSet,
         }
         api.adminUpdateExam(params)
         .then( resp=>{
-          console.log(resp.data);
+          this.$Message.success("保存成功");
         }, err=>{
           console.log(err.data);
         })
@@ -149,19 +141,11 @@ export default{
     if( this.id != null ){
       api.adminGetExam( this.id )
       .then(resp=>{
-        console.log(resp);
         this.formValue.title = resp.data.title;
         this.formValue.description = resp.data.description;
         this.formValue.timeRange = [new Date(resp.data.startTime), new Date(resp.data.endTime)];
         this.formRule.ipRange = resp.data.ipRange;
-        let config = resp.data.problemConfig;
-        for( let i=0; i< config.length; ++i){
-          let tmp = {quantity:config[i].quantity, problems:{}};
-          for( let j=0; j<config[i].problems.length; ++j){
-            tmp.problems[config[i].problems[j].id] = config[i].problems[j];
-          }
-          this.problemSet.push(tmp);
-        }
+        this.problemSet = resp.data.problemConfig;
       },err=>{
       })
     }
@@ -171,7 +155,7 @@ export default{
 
 
 <template>
-  <NavBarAdmin></NavBarAdmin>
+  <NavBarAdmin active-menu="/admin/exam-list.html"></NavBarAdmin>
   <div class="content-app">
     <Content :style="{ padding: '0 50px' }">
       <TitledPanel id="problem-info">

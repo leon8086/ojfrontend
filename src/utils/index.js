@@ -1,5 +1,6 @@
 import utils from './utils';
 import time from './time'
+import { util } from 'echarts';
 
 export default {
     getUrlKey: function (name) {
@@ -14,5 +15,6 @@ export default {
     getLanguages: utils.getLanguages,
     utcToLocal: time.utcToLocal,
     duration: time.duration,
-    secondFormat: time.secondFormat
+    secondFormat: time.secondFormat,
+    importUsersCSV: utils.importUsersCSV,
 }

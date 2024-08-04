@@ -1,21 +1,18 @@
 <script setup>
-import { useGlobalInfo, getUserLoginInfo } from "../utils/globalInfo.ts";
-import { ref, onMounted } from 'vue';
+import { useGlobalInfo, useCheckLogin, isAdmin } from "@/utils/globalInfo";
+import { ref, onMounted, computed } from 'vue';
 import { Modal } from 'view-ui-plus';
 import api from '../api';
 defineProps( ['activeMenu'] );
-const isAuthenticated = ref(false);
-const isAdminRole = ref(false);
+
+const userInfo = defineModel({default:{}})
+
 const modalVisible = ref(false);
 const website = ref({
   website_name:"测试",
   allow_register:false,
   website_name_shortcut:"测试"
 });
-
-const userInfo = ref({
-  login: false,
-})
 
 const formLogin = ref({ username:'', password: ''});
 
@@ -24,8 +21,20 @@ const btnLoginLoading = ref(false);
 const loginable = ref(true);
 
 const handleRoute = function (route) {
+  //console.log(route);
+  if( route == "/logout"){
+    logout();
+    return;
+  }
   window.location.href = route;
 };
+
+const logout = function(){
+  api.logout()
+  .then(resp=>{
+    window.location.href="/login.html";
+  })
+}
 
 const handleBtnClick = function (name) {
   if(modalVisible.value){
@@ -62,33 +71,34 @@ const validCheck = function(){
   }
 }
 
-const goResetPassword = function(){
-};
-
 onMounted(()=>{
   useGlobalInfo( website );
-  userInfo.value = getUserLoginInfo();
+  useCheckLogin(userInfo);
 });
+
+const isAdminRole = computed(()=>{
+  return isAdmin(userInfo);
+})
 
 </script>
 
 <template>
   <div id="header">
     <Menu theme="light" mode="horizontal" @on-select="handleRoute" :active-name="activeMenu" class="oj-menu">
-      <div class="logo"><span>{{website.website_name}}</span></div>
+      <div class="logo" @click="console.log(userInfo)"><span>{{website.website_name}}</span></div>
       <Menu-item name="/">
         <Icon type="md-home"></Icon>
         {{$t('m.Home')}}
       </Menu-item>
-      <Menu-item name="/problemlist.html">
+      <Menu-item name="/problem-list.html">
         <Icon type="ios-keypad"></Icon>
         {{$t('m.NavProblems')}}
       </Menu-item>
-      <!-- <Menu-item name="/contest">
+      <Menu-item name="/exam-list">
         <Icon type="ios-list-box"></Icon>
-        {{$t('m.Contests')}}
-      </Menu-item> -->
-      <Menu-item name="/submissionlist.html">
+         考试
+      </Menu-item>
+      <Menu-item name="/submission-list.html">
         <Icon type="ios-pulse"></Icon>
         {{ $t('m.NavStatus') }}
       </Menu-item>
@@ -108,31 +118,25 @@ onMounted(()=>{
           {{$t('m.FAQ')}}
         </Menu-item>
       </Submenu>
-      <template v-if="!userInfo.login">
-        <div class="btn-menu">
-          <Button ref="loginBtn" shape="circle" @click="handleBtnClick('login')">{{$t('m.Login')}}
-          </Button>
-          <Button v-if="website.allow_register" shape="circle" @click="handleBtnClick('register')"
-            style="margin-left: 5px;">{{$t('m.Register')}}
-          </Button>
-        </div>
+      <template v-if="isAdminRole">
+        <Menu-item name="/admin/">
+          <Icon type="ios-redo"></Icon>
+          管理端
+        </Menu-item>
       </template>
-      <template v-else>
-        <Dropdown class="drop-menu" @on-click="handleRoute" placement="bottom">
-          <Button type="text" class="drop-menu-title">{{ userInfo.username }}
-            <Icon type="ios-arrow-down"></Icon>
-          </Button>
-          <template #list>
-            <Dropdown-menu>
-              <Dropdown-item name="/user-home">{{$t('m.MyHome')}}</Dropdown-item>
-              <Dropdown-item name="/status?myself=1">{{$t('m.MySubmissions')}}</Dropdown-item>
-              <Dropdown-item name="/setting/profile">{{$t('m.Settings')}}</Dropdown-item>
-              <Dropdown-item v-if="isAdminRole" name="/admin">{{$t('m.Management')}}</Dropdown-item>
-              <Dropdown-item divided name="/logout">{{$t('m.Logout')}}</Dropdown-item>
-            </Dropdown-menu>
-          </template>
-        </Dropdown>
-      </template>
+      <Dropdown class="drop-menu" @on-click="handleRoute" placement="bottom">
+        <Button type="text" class="drop-menu-title">{{ userInfo.username }}
+          <Icon type="ios-arrow-down"></Icon>
+        </Button>
+        <template #list>
+          <Dropdown-menu>
+            <Dropdown-item name="/user-home">{{$t('m.MyHome')}}</Dropdown-item>
+            <Dropdown-item name="/status?myself=1">{{$t('m.MySubmissions')}}</Dropdown-item>
+            <Dropdown-item name="/setting/profile">{{$t('m.Settings')}}</Dropdown-item>
+            <Dropdown-item divided name="/logout">{{$t('m.Logout')}}</Dropdown-item>
+          </Dropdown-menu>
+        </template>
+      </Dropdown>
     </Menu>
     <Modal v-model="modalVisible" :width="400" :mask-closable="false" :footer-hide="true">
       <template #header>

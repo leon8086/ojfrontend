@@ -24,6 +24,12 @@ export default{
             width: 80,
           },
           {
+            title: 'id',
+            key: 'id',
+            width: 80,
+            align:'center',
+          },
+          {
             title: '#',
             slot: 'id',
             width: 120,
@@ -73,7 +79,7 @@ export default{
     },
     getProblemList() {
       let self = this;
-      api.getProblemList(this.query)
+      api.adminGetProblemListBrief(this.query)
         .then((resp) => {
           self.problemData.data = resp.data.records;
           self.dealwithSelected();
@@ -94,7 +100,16 @@ export default{
     modelValue(){
       this.dealwithSelected();
       this.selected = this.modelValue;
-    }
+    },
+    query:{
+      handler( newVal ){
+        if( this.query == newVal ){
+          return;
+        }
+        this.getProblemList();
+      },
+      deep: true,
+    },
   },
   mounted(){
     this.getProblemList();
@@ -106,7 +121,7 @@ export default{
 <template>
   <div>
     <Space direction="vertical" type="flex">
-    <Input v-model="query.keyword" prefix="md-search" placeholder="筛选关键字" clearable />
+      <Input v-model="query.keyword" prefix="md-search" placeholder="筛选关键字" clearable />
     <Table style="width: 100%; font-size: 16px;" :columns="problemData.columns" :data="problemData.data" :row-class-name="rowClassName"
       :loading="loadings.table" :no-data-text="`<tr>没有题目</tr>`" :no-filtered-data-text="`<tr>没有题目</tr>`" disabled-hover>
       <template #checked="{row}">
@@ -128,7 +143,7 @@ export default{
         </Tag>
       </template>
     </Table>
-    <Pagination @on-page-size-change="getProblemList" :show-sizer="true" :total="query.total"
+    <Pagination @on-page-size-change="getProblemList" :show-sizer="false" :total="query.total" size="small"
       v-model:page-size="query.limit" @on-change="getProblemList" v-model:current="query.page"></Pagination>
     </Space>
   </div>

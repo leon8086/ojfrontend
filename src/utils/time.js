@@ -10,11 +10,22 @@ function duration (startTime, endTime) {
   let start = moment(startTime)
   let end = moment(endTime)
   let duration = moment.duration(end.diff(start, 'seconds'), 'seconds')
-  if (duration.days() !== 0) {
-    return duration.days().toString()+"天";
+  if( duration.asSeconds() <0 ){
+    return {color:"default",message:"已结束"};
   }
-  let texts = [Math.floor(duration.asHours()), duration.minutes(), duration.seconds()];
-  return texts.join(":");
+  if (duration.days() !== 0) {
+    return {color:"success",message:duration.days().toString()+"天"};
+  }
+  let color = "success";
+  if( duration.asMinutes()<30 ){
+    color = "warning";
+  }
+  if( duration.asMinutes()<10 ){
+    color = "error";
+  }
+  return {color:color, message:moment.utc(duration.asMilliseconds()).format("HH:mm:ss")};
+  //return duration.asMilliseconds().format("HH:mm:ss");
+  //return duration.format("HH:mm:ss");
 }
 
 function secondFormat (seconds) {
