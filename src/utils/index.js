@@ -1,6 +1,6 @@
 import utils from './utils';
 import time from './time'
-import { util } from 'echarts';
+import { getUserLoginInfo, useGlobalInfo, useCheckLogin, useCheckAdminLogin, usePageSet, isAdmin, isSuperAdmin, pageIndex } from "./globalInfo.js";
 
 export default {
     getUrlKey: function (name) {
@@ -17,4 +17,12 @@ export default {
     duration: time.duration,
     secondFormat: time.secondFormat,
     importUsersCSV: utils.importUsersCSV,
+    getUserLoginInfo,
+    useGlobalInfo,
+    useCheckLogin,
+    useCheckAdminLogin,
+    usePageSet,
+    isAdmin,
+    isSuperAdmin,
+    pageIndex,
 }

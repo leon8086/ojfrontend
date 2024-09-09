@@ -3,7 +3,7 @@ import 'view-ui-plus/dist/styles/viewuiplus.css';
 import { createApp } from 'vue'
 import '@/styles/def.less'
 import '@/styles/index.less'
-import i18n from '../i18n'
+import i18n from '@/i18n'
 import '@/assets/main.css'
 import hljs from 'highlight.js/lib/core';
 

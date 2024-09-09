@@ -10,29 +10,11 @@ import 'md-editor-v3/lib/style.css';
 import i18n from '@/i18n';
 import api from '@/api';
 import utils from '@/utils';
-import { Checkbox, CopyConfig, Modal } from 'view-ui-plus';
+import { Checkbox, CopyConfig, Message, Modal } from 'view-ui-plus';
 
 const problemId = ref(null);
 const userInfo = ref({login:false});
 const formValidate = ref(null);
-// const formData = ref({
-//   title:"",
-//   displayId:"",
-//   timeLimit:1000,
-//   memoryLimit:256,
-//   difficulty:"Low",
-//   languages:["C","C++"],
-//   template:{"C":{code:"", valid:false}, 'C++':{ code:"", valid:false}},
-//   description:"",
-//   inputDescription:"",
-//   outputDescription:"",
-//   visible:true,
-//   majorTagId:null,
-//   subTagId:null,
-//   samples:[],
-//   testCaseScore:[],
-//   totalScore:0,
-// });
 
 const formData = ref({
   title:"测试题",
@@ -79,6 +61,12 @@ const ruleData = ref({
   ],
   outputDescription:[
     { required: true, message: '输出描述不能为空', trigger: 'blur' }
+  ],
+  majorTagId:[
+    { required: true, message: '请选择一个主类别', trigger: 'blur' },
+  ],
+  subTagId:[
+    { required: true, message: '请选择一个子类别', trigger: 'blur' },
   ],
   samples:[
   { type:'array', required:true, defaultField:{ type:'object', required:true, fields:{
@@ -264,7 +252,6 @@ const updateProblem = function(){
   .then( resp=>{
     isUploading.value=false;
     getProblem(problemId.value);
-    console.log(resp);
   }, err=>{
   })
 }
@@ -303,12 +290,18 @@ const newProblem = function(){
 }
 
 const submit = function(){
-  if( problemId.value == null ){
-    newProblem();
-  }
-  else{
-    updateProblem();
-  }
+  formValidate.value.validate((valid)=>{
+    if( !valid ){
+      Message.error("请检查填写是否正确");
+      return;
+    }
+    if( problemId.value == null ){
+      newProblem();
+    }
+    else{
+      updateProblem();
+    }
+    });
 }
 
 const getProblem = function( id ){
@@ -335,14 +328,14 @@ onMounted(()=>{
 
 <template>
 <Layout>
-  <NavBarAdmin :activeMenu="'/admin/problem-list.html'" v-model="userInfo"></NavBarAdmin>
+  <NavBarAdmin :activeMenu="'./problem-list.html'" v-model="userInfo"></NavBarAdmin>
   <div class="content-app">
   <Content :style="{padding:'0 50px'}">
     <TitledPanel>
       <template #title>
         <template v-if="problemId==null">新建题目</template>
         <template v-else>编辑题目({{ problemId }})</template>
-        <Button @click="console.log(formData,tagLists)">看</Button>
+        <!-- <Button @click="console.log(formData,tagLists)">看</Button> -->
       </template>
       <template #extra>
         <Form ref="formValidate" :model="formData" :rules="ruleData" label-position="left" :label-width="80">

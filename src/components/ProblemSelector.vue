@@ -1,7 +1,7 @@
 <script>
 import {reactive, watch, ref, onMounted} from "vue";
 import Pagination from "@/components/Pagination.vue";
-import { DIFFICULTY_COLOR } from "../utils/constants";
+import { DIFFICULTY_COLOR } from "@/utils/constants";
 import i18n from "@/i18n";
 import api from "@/api";
 
@@ -77,6 +77,9 @@ export default{
         }
       }
     },
+    filterByKeyword(){
+      this.getProblemList();
+    },
     getProblemList() {
       let self = this;
       api.adminGetProblemListBrief(this.query)
@@ -121,7 +124,9 @@ export default{
 <template>
   <div>
     <Space direction="vertical" type="flex">
-      <Input v-model="query.keyword" prefix="md-search" placeholder="筛选关键字" clearable />
+      <Input v-model="query.keyword" prefix="md-search"
+          placeholder="筛选关键字"
+          @on-enter="filterByKeyword" @on-click="filterByKeyword" @on-change="filterByKeyword"/>
     <Table style="width: 100%; font-size: 16px;" :columns="problemData.columns" :data="problemData.data" :row-class-name="rowClassName"
       :loading="loadings.table" :no-data-text="`<tr>没有题目</tr>`" :no-filtered-data-text="`<tr>没有题目</tr>`" disabled-hover>
       <template #checked="{row}">

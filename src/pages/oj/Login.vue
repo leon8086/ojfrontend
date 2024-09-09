@@ -24,11 +24,13 @@ const handleSubmit = function(){
   btnLoginLoading.value = true;
   api.login({username:formLogin.value.username,password:formLogin.value.password})
   .then(resp=>{
-    btnLoginLoading.value = false;
-    userInfo.value = resp.data;
-    userInfo.value.login = true;
-    window.localStorage['user_info'] = JSON.stringify(userInfo.value);
-    window.location.href="/";
+    if( resp.code == 100 ){
+      btnLoginLoading.value = false;
+      userInfo.value = resp.data;
+      userInfo.value.login = true;
+      window.localStorage['user_info'] = JSON.stringify(userInfo.value);
+      window.location.href="./";
+    }
   }, err => {
     console.log(err);
     Modal.error({title:"登录错误", content:err.message});
@@ -63,7 +65,7 @@ const handleSubmit = function(){
             </FormItem>
           </Form>
           <table class="login-tip">
-            <tr><td>初始账号：</td><td style="text-align: left;">姓名_学号（庄体育_2200000099）</td></tr>
+            <tr><td>初始账号：</td><td style="text-align: left;">学号_姓名（2200000099_庄体育）</td></tr>
             <tr><td>初始密码：</td><td style="text-align: left;">学号（2200000099）</td></tr>
           </table>
         </div>

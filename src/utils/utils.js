@@ -1,7 +1,7 @@
 //import Vue from 'vue'
-import storage from '../utils/storage'
-import { STORAGE_KEY } from '../utils/constants'
-import ojAPI from '../api'
+import storage from '@/utils/storage'
+import { STORAGE_KEY } from '@/utils/constants'
+import ojAPI from '@/api'
 import papa from 'papaparse';
 
 export default {

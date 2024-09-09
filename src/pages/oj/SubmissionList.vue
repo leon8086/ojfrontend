@@ -5,11 +5,12 @@ import Pagination from '@/components/Pagination.vue'
 import XMUTFooter from '@/components/XMUTFooter.vue'
 
 import { ref, reactive, onMounted, resolveComponent } from 'vue';
-import { JUDGE_STATUS, USER_TYPE } from '../../utils/constants'
-import utils from '../../utils/utils'
-import time from '../../utils/time'
-import i18n from '../../i18n';
-import api from '../../api'
+import { JUDGE_STATUS, USER_TYPE } from '@/utils/constants'
+import utils from '@/utils/utils'
+import time from '@/utils/time'
+import i18n from '@/i18n';
+import api from '@/api'
+import { isAdmin } from '@/utils/globalInfo';
 
 const title = ref("提交记录");
 
@@ -17,58 +18,40 @@ const formFilter = reactive({
   myself: false,
   result: '',
   username: ''
-})
+});
+
+const userInfo = ref({});
 
 const columns = ref([
   {
     title: i18n.global.t('m.When'),
     align: 'center',
-    render: (h, params) => {
-      return h('span', { style: { "font-size":'12px', }}, time.utcToLocal(params.row.createTime));
-    }
+    slot: "submittime",
   },
   {
     title: i18n.global.t('m.ID'),
     align: 'center',
-    render: (h, params) => {
-        return h('a',{ href:"/submission.html?id="+params.row.id}, params.row.id.slice(0, 10));
-    }
+    slot: "id",
   },
   {
     title: i18n.global.t('m.Status'),
     align: 'center',
-    render: (h, params) => {
-      return h(resolveComponent('Tag'), {
-          color: JUDGE_STATUS[params.row.result].color
-      },
-      () => i18n.global.t('m.' + JUDGE_STATUS[params.row.result].name.replace(/ /g, '_')))
-    }
+    slot: "status",
   },
   {
     title: i18n.global.t('m.Problem'),
     align: 'center',
-    render: (h, params) => {
-      return h('a',
-        {
-          href:"/problem.html?id="+params.row.voProblemBrief.id,
-          title:params.row.voProblemBrief.title,
-        },
-        params.row.voProblemBrief.displayId );
-    }
+    slot: "problem",
   },
   {
     title: i18n.global.t('m.Time'),
     align: 'center',
-    render: (h, params) => {
-      return h('span', utils.submissionTimeFormat(params.row.statisticInfo.time_cost))
-    }
+    slot: "runtime",
   },
   {
     title: i18n.global.t('m.Memory'),
     align: 'center',
-    render: (h, params) => {
-      return h('span', utils.submissionMemoryFormat(params.row.statisticInfo.memory_cost))
-    }
+    slot: "memory",
   },
   {
     title: i18n.global.t('m.Language'),
@@ -78,14 +61,7 @@ const columns = ref([
   {
     title: i18n.global.t('m.Author'),
     align: 'center',
-    render: (h, params) => {
-      return h('a', {
-        style: {
-          'display': 'inline-block',
-          'max-width': '150px'
-        },
-      }, params.row.username)
-    }
+    slot: "author"
   }
 ])
 
@@ -94,84 +70,44 @@ const submissions = ref([]);
 const total = ref(30);
 const limit = ref(15);
 const page = ref(1);
-const contestId = ref('');
-const problemId = ref('');
-const rejudge_column = ref(false);
-const isAuthenticated = ref(true);
 
 function buildQuery() {
   return {
     myself: formFilter.myself === true ? '1' : '0',
     result: formFilter.result,
     username: formFilter.username,
-    page: page.value
+    page: page.value,
+    limit: limit.value,
   }
 }
+
 function getSubmissions() {
   let params = buildQuery();
-  //params.problemId = roblemId.value;
   loadingTable.value = true
-  api.getSubmissionList({page:page.value, limit:limit.value}).then(res => {
+  api.getSubmissionList(params).then(res => {
     let data = res.data
     for (let v of data.records) {
       v.loading = false
     }
-    adjustRejudgeColumn()
-    loadingTable.valuefalse = false
+    loadingTable.value = false
     total.value = data.totalRow
     submissions.value = data.records;
     loadingTable.value = false;
-    //console.log(data);
   }).catch(() => {
     loadingTable.value = false;
   })
 }
 
-function adjustRejudgeColumn() {
-  return;
-  if (!rejudgeColumnVisible.value || rejudge_column.value) {
-    return
-  }
-  const judgeColumn = {
-    title: i18n.global.t('m.Option'),
-    fixed: 'right',
-    align: 'center',
-    width: 90,
-    render: (h, params) => {
-      return h('Button', {
-        props: {
-          type: 'primary',
-          size: 'small',
-          loading: params.row.loading
-        },
-        on: {
-          click: () => {
-            handleRejudge(params.row.id, params.index)
-          }
-        }
-      }, i18n.global.t('m.Rejudge'))
-    }
-  }
-  columns.push(judgeColumn)
-  rejudge_column.value = true
-}
 
 function handleResultChange(status) {
   page.value = 1;
   formFilter.result = status;
+  getSubmissions();
 }
+
 function handleQueryChange() {
   page.value = 1;
-}
-function handleRejudge(id, index) {
-  // this.submissions[index].loading = true
-  // api.submissionRejudge(id).then(res => {
-  //   this.submissions[index].loading = false
-  //   this.$success('Succeeded')
-  //   this.getSubmissions()
-  // }, () => {
-  //   this.submissions[index].loading = false
-  // })
+  getSubmissions();
 }
 
 onMounted(()=>{
@@ -180,7 +116,7 @@ onMounted(()=>{
 </script>
 
 <template>
-  <NavBar :activeMenu="'/submission-list.html'"></NavBar>
+  <NavBar activeMenu="submission-list.html" v-model="userInfo"></NavBar>
   <div class="content-app">
     <Content :style="{ padding: '0 50px' }">
       <TitledPanel shadow class="main">
@@ -194,7 +130,7 @@ onMounted(()=>{
             <ul class="filter">
               <li>
                 <Dropdown @on-click="handleResultChange">
-                  <span>{{ $t('m.Status') }}
+                  <span>{{ formFilter.result == "" ? $t('m.Status'):$t("m."+JUDGE_STATUS[formFilter.result].name.replace(/ /g,"_")) }}
                     <Icon type="md-arrow-dropdown"></Icon>
                   </span>
                   <template #list>
@@ -208,21 +144,22 @@ onMounted(()=>{
                 </Dropdown>
               </li>
               <li>
-                <i-switch size="large" v-model="formFilter.myself" @on-change="handleQueryChange"
-                  v-if="isAuthenticated">
+                <Switch size="large" v-model="formFilter.myself" @on-change="handleQueryChange">
                   <template #open>
                     <span>{{ $t('m.Mine') }}</span>
                   </template>
                   <template #close>
                     <span>{{ $t('m.All') }}</span>
                   </template>
-                </i-switch>
+                </Switch>
               </li>
               <li>
                 <Input v-model="formFilter.username" :placeholder="$t('m.Search_Author')"
-                  @on-enter="handleQueryChange" />
+                  @on-enter="handleQueryChange"
+                  @on-change="handleQueryChange"
+                  @on-click="handleQueryChange"
+                  />
               </li>
-
               <li>
                 <Button type="primary" icon="md-refresh" @click="getSubmissions">{{ $t('m.Refresh') }}</Button>
               </li>
@@ -230,7 +167,39 @@ onMounted(()=>{
           </div>
         </template>
 
-        <Table stripe :disabled-hover="true" :columns="columns" :data="submissions" :loading="loadingTable"></Table>
+        <Table stripe :disabled-hover="true" :columns="columns" :data="submissions" :loading="loadingTable">
+          <template #submittime="{row}">
+            <span> {{ time.utcToLocal(row.createTime) }} </span>
+          </template>
+          <template #id="{row}">
+            <template v-if="(userInfo.id == row.userId)||(isAdmin(userInfo))">
+              <a :href="'./submission.html?id='+row.id">{{ row.id.slice(0,10) }}</a>
+            </template>
+            <template v-else>
+              {{ row.id.slice(0,10) }}
+            </template>
+          </template>
+          <template #status="{row}">
+            <Tag :color="JUDGE_STATUS[row.result].color">{{$t('m.' + JUDGE_STATUS[row.result].name.replace(/ /g, '_'))}}</Tag>
+          </template>
+          <template #problem="{row}">
+            <a :href="'./problem.html?id='+row.voProblemBrief.id" :title="row.voProblemBrief.title">{{row.voProblemBrief.displayId}}</a>
+          </template>
+          <template #runtime="{row}">
+            <span>{{ utils.submissionTimeFormat(row.statisticInfo.time_cost) }}</span>
+          </template>
+          <template #memory="{row}">
+            <span>{{ utils.submissionMemoryFormat(row.statisticInfo.memory_cost) }}</span>
+          </template>
+          <template #author="{row}">
+            <template v-if="(userInfo.id == row.userId)||(isAdmin(userInfo))">
+              <a :href="'./userInfo.html?id='+row.userId">{{ row.username }}</a>
+            </template>
+            <template v-else>
+              {{ row.username }}
+            </template>
+          </template>
+        </Table>
         <Pagination @on-page-size-change="getSubmissions" @on-change="getSubmissions" :total="total"
           v-model:page-size="limit" v-model:current.sync="page" :show-sizer=true>
         </Pagination>

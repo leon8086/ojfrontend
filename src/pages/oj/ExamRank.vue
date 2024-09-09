@@ -2,8 +2,8 @@
 <script setup>
 import XMUTFooter from '@/components/XMUTFooter.vue'
 import TitledPanel from '@/components/TitledPanel.vue';
-import moment from "moment";
-import { useCheckLogin  } from '@/utils/globalInfo';
+import dayjs from "dayjs";
+import { useCheckLogin, isAdmin  } from '@/utils/globalInfo';
 
 import { ref, reactive, onMounted, resolveComponent } from 'vue';
 
@@ -28,7 +28,7 @@ const examInfo = ref({
 const timeRemains = ref({});
 
 const getExamRank = function(){
-  api.getExamRank( examInfo.id )
+  api.getExamRank( examInfo.value.id )
   .then( resp =>{
     rankList.value = resp.data;
   }, err => {
@@ -38,23 +38,20 @@ const getExamRank = function(){
 onMounted(()=>{
   useCheckLogin( userInfo );
   let id = utils.getUrlKey("id");
+  examInfo.value.id = id;
   api.getExamBrief(id)
   .then(resp=>{
     examInfo.value = resp.data;
-    let count = 0;
-    let config = examInfo.value.problemConfig;
-    for( let i=0; i<config.length; ++i ){
-      count += config[i].quantity;
-    }
+    let count = examInfo.value.problemCount;
     examInfo.value.count = count;
     rankTableColumns.value.push({
      title: '#',
-     width: 120,
+     width: 100,
      align: "center",
      slot: "rank",
     },{
      title: "用户",
-     width: 240,
+     width: 200,
      align: "center",
      slot: "user",
     });
@@ -73,14 +70,25 @@ onMounted(()=>{
           else if( score >= 50){
             color = "warning";
           }
-          return h("div", {style:"display:flex; justify-content:space-around; align-items:center"},
-                    [
-                      h("div", [
-                        h(resolveComponent("Tag"),{color:DIFFICULTY_COLOR[p.difficulty]},()=>{return i18n.global.t("m."+p.difficulty);}),
-                        h("a",{ href:"/problem?id="+p.id , target:"_blank"},p.title),
-                      ]),
-                      h(resolveComponent("Tag"),{color:color},()=>{return score.toString();})
-                    ]);
+          if( isAdmin(userInfo) ){
+            return h("div", {style:"display:flex; justify-content:space-around; align-items:center"},
+                      [
+                        h("div", [
+                          h(resolveComponent("Tag"),{color:DIFFICULTY_COLOR[p.difficulty]},()=>{return i18n.global.t("m."+p.difficulty);}),
+                          score>0?h("a",{ href:"/exam-submission?exam="+id+"&user="+params.row.user.id+"&problem="+p.id , target:"_blank"},p.title):h("span", p.title),
+                        ]),
+                        h(resolveComponent("Tag"),{color:color},()=>{return score.toString();})
+                      ]);
+          }
+          else{
+            return h("div", {style:"display:flex; justify-content:space-around; align-items:center"},
+                      [
+                        h("div", [
+                          h(resolveComponent("Tag"),{color:DIFFICULTY_COLOR[p.difficulty]},()=>{return i18n.global.t("m."+p.difficulty);}),
+                        ]),
+                        h(resolveComponent("Tag"),{color:color},()=>{return score.toString();})
+                      ]);
+          }
         }// render
       });
     }
@@ -99,8 +107,8 @@ onMounted(()=>{
   });
 
   setInterval( ()=>{
-    timeRemains.value = utils.duration(moment.now(), examInfo.value.endTime);
-    if( realtimeUpdate.value ){
+    timeRemains.value = utils.duration(dayjs(), examInfo.value.endTime);
+    if( realtimeUpdate.value && (!examInfo.value.isEnded) ){
       timeCounter = (timeCounter+1)%timeSpan;
       if( timeCounter == 0)
         getExamRank();
@@ -138,8 +146,10 @@ const backToHome = function(){
         <Tag type="dot" :color="timeRemains.color" large><span class="time-str">{{timeRemains.message}}</span></Tag>
       </div>
       <div class="btn-menu">
-        <Button type="primary" @click="backToHome">返回主页
-        </Button>
+        <template v-if="isAdmin(userInfo)">
+          <Button type="primary" @click="backToHome">返回主页
+          </Button>
+        </template>
       </div>
     </Menu>
   </div>
@@ -174,7 +184,12 @@ const backToHome = function(){
             {{ row.score }}
           </template>
           <template #endTime="{row, index}">
-            {{ row.examId }}
+            <template v-if="row.isEnded">
+              <span class="ended"> {{ dayjs(row.lastUpdate).format("YYYY年MM月DD日 HH:mm:ss") }} </span>
+            </template>
+            <template v-else>
+              <span class="running">进行中...</span>
+            </template>
           </template>
         </Table>
       </TitledPanel>
@@ -328,5 +343,13 @@ const backToHome = function(){
   margin-top: 20px;
   margin-bottom: 10px;
   padding: 20px 0px;
+}
+
+.running {
+  color: green;
+}
+
+.ended {
+  color: red;
 }
 </style>

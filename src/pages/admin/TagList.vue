@@ -2,9 +2,9 @@
 <script setup>
 import NavBarAdmin from '@/components/NavBarAdmin.vue'
 import XMUTFooter from '@/components/XMUTFooter.vue'
-import TitledPanel from '../../components/TitledPanel.vue';
+import TitledPanel from '@/components/TitledPanel.vue';
 import ProbTag from '@/components/ProbTag.vue';
-import { Modal } from "view-ui-plus";
+import { Message, Modal } from "view-ui-plus";
 import { ref, reactive, onMounted, resolveComponent } from 'vue';
 import i18n from '@/i18n';
 import api from '@/api';
@@ -144,39 +144,81 @@ const getTags = function(){
   })
 };
 
+const gradeColumn = ref([
+  {
+    title: "#",
+    key: "id",
+    width: 80,
+    align: "center",
+  },
+  {
+    title:"年级",
+    key: "name",
+    align: "center",
+  },
+  {
+    title:"操作",
+    slot: "operation",
+    width: 200,
+    align:"center"
+  },
+]);
+
+const gradeList = ref([])
+
+const getGradeList = function(){
+  api.getGrade()
+  .then(resp=>{
+    gradeList.value = resp.data;
+  })
+}
+
 const userInfo = ref({login:false});
 
-onMounted(() => {
+const formGrade = ref({
+  name:"",
+});
+
+const validGrade = ref(null);
+
+const ruleGrade = ref({
+  name:[
+    { required:true, message:"请输入新年级的名称"}
+  ]
+});
+
+const isShowNewGrade = ref(false);
+
+const newGrade = function(){
+  validGrade.value.validate((valid)=>{
+    if( !valid ){
+      Message.error("请检查必填项");
+      return;
+    }
+    api.adminNewGrade(formGrade.name)
+    .then(resp=>{
+    });
+  })
+}
+
+onMounted( () => {
   getTags();
+  getGradeList();
 })
 </script>
 
 <template>
   <Layout>
-    <NavBarAdmin :activeMenu="'/admin/tag-list.html'" v-model="userInfo"></NavBarAdmin>
+    <NavBarAdmin :activeMenu="'./tag-list.html'" v-model="userInfo"></NavBarAdmin>
     <div class="content-app">
       <Content :style="{padding:'0 50px'}">
         <TitledPanel>
           <template #title>
-            题目标签列表
+            标签列表
             <Button type="primary" @click="showAddMajor">
               <Icon type="md-add"></Icon>
                 新建主标签
             </Button>
-          </template>
-          <template #extra>
-            <ul class="filter">
-              <li>
-                <Input v-model="query.keyword" @on-enter="filterByKeyword" @on-click="filterByKeyword"
-                  placeholder="关键字" icon="ios-search-strong" />
-              </li>
-              <li>
-                <Button type="primary" @click="onReset">
-                  <Icon type="md-refresh"></Icon>
-                   重置
-                </Button>
-              </li>
-            </ul>
           </template>
           <Table :columns = "tagColumn" :data="majorTags">
             <template #name="{row}">
@@ -200,6 +242,27 @@ onMounted(() => {
                   </Button>
                 </Tooltip>
               </div>
+            </template>
+          </Table>
+        </TitledPanel>
+        <TitledPanel>
+          <template #title>
+            年级列表
+            <Button type="primary" @click="()=>isShowNewGrade=true">
+              <Icon type="md-add"></Icon>
+                新建年级
+            </Button>
+          </template>
+          <Table :columns = "gradeColumn" :data="gradeList">
+            <template #operation>
+                <Tooltip content="编辑年级" placement="top-start">
+                  <Button icon="ios-create" @click="showEditGrade(row)">
+                  </Button>
+                </Tooltip>
+                <Tooltip content="删除年级" placement="top-start">
+                  <Button icon="ios-trash" @click="deleteGrade(row)">
+                  </Button>
+                </Tooltip>
             </template>
           </Table>
         </TitledPanel>
@@ -237,6 +300,13 @@ onMounted(() => {
         </Col>
         <Col :span="1"></Col>
       </Row>
+      </Form>
+    </Modal>
+    <Modal v-model="isShowNewGrade" @onOk="newGrade">
+      <Form ref="validGrade" :model="formGrade" :rules="ruleGrade" label-position="top">
+        <FormItem prop="name" label="新年级名">
+          <Input type="text" v-model="formGrade.name"></Input>
+        </FormItem>
       </Form>
     </Modal>
     <XMUTFooter></XMUTFooter>

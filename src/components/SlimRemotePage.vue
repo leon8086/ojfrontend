@@ -19,7 +19,7 @@ const props = defineProps({
 
 const pageDesc = defineModel({default: { page:1, limit:10, total:0 }});
 
-const emit = defineEmits(['update']);
+const emit = defineEmits(['update','on-select', 'on-select-all', 'on-selection-change']);
 
 const curPage = ref([]);
 const pageChanged = function(){
@@ -29,7 +29,6 @@ const pageChanged = function(){
     pageDesc.value.page = resp.data.pageNumber;
     pageDesc.value.limit = resp.data.pageSize;
     pageDesc.value.total = resp.data.totalRow;
-    //console.log(pageDesc.value);
     emit("update", curPage.value);
   }, err=>{
   })
@@ -57,6 +56,24 @@ const refresh = function(){
   pageChanged();
 }
 
+const onSelect = function( selection, row ){
+  emit("on-select", selection, row);
+  // console.log( "on-select" );
+  // console.log( selection, row );
+}
+
+const onSelectAll = function( selection ){
+  emit("on-select-all", selection);
+  // console.log( "on-select-all" );
+  // console.log( selection );
+}
+
+const onSelectionChange = function( selection ){
+  emit("on-selection-change", selection);
+  // console.log( "on-selection-change" );
+  // console.log( selection );
+}
+
 defineExpose({
   refresh
 })
@@ -65,7 +82,13 @@ defineExpose({
 
 <template>
   <!-- <Button @click="pageChanged">看</Button> -->
-  <Table v-bind="$attrs" :columns="props.columns" :data="curPage">
+  <Table  v-bind="$attrs"
+          :columns="props.columns"
+          :data="curPage"
+          @on-select="onSelect"
+          @on-select-all="onSelectAll"
+          @on-selection-change="onSelectionChange"
+  >
     <template v-for="(_,name) in $slots" #[name]="slotData">
       <slot :name="name" v-bind="slotData || {}"></slot>
     </template>

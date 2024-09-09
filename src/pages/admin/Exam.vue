@@ -1,12 +1,13 @@
 <script>
 import XMUTFooter from "@/components/XMUTFooter.vue";
-import TitledPanel from "../../components/TitledPanel.vue";
-import ProblemSelector from "../../components/ProblemSelector.vue";
-import NavBarAdmin from "../../components/NavBarAdmin.vue";
-import { DIFFICULTY_COLOR } from "../../utils/constants";
+import TitledPanel from "@/components/TitledPanel.vue";
+import ProblemSelector from "@/components/ProblemSelector.vue";
+import NavBarAdmin from "@/components/NavBarAdmin.vue";
+import { DIFFICULTY_COLOR } from "@/utils/constants";
+import { isAdmin, isSuperAdmin } from "@/utils/globalInfo";
 import api from "@/api";
 import utils from "@/utils"
-import moment from 'moment';
+import dayjs from 'dayjs';
 
 export default{
   components:{
@@ -19,8 +20,15 @@ export default{
     return{
       DIFFICULTY_COLOR,
       id:null,
+      userInfo : {login:false},
       content :"",
-      formValue : {title:"",description:"",timeRange:["",""], ipRange:""},
+      formValue : {
+        title:"",
+        description:"",
+        timeRange:[new Date(), new Date()],
+        ipRange:"",
+        examCourse:null
+      },
       formRule : {
         title:[
           { required: true, message:"请输入考试名称", trigger:'blur' },
@@ -32,6 +40,12 @@ export default{
               1:{ required: true, type:'date', message:'结束时间不能为空',trigger:'change'},
             }
           },
+        ],
+        examCourse:[
+          { required: true, message:"请设置考试课程" }
+        ],
+        ipRange:[
+          { validator:this.validateIpRange }
         ]
       },
       problemSetColumns: [
@@ -63,9 +77,27 @@ export default{
       ],
       currentProblem: 0,
       selectVisible: false,
+      courseList:[],
     }
   },
   methods: {
+    validateIpRange(rule, value, callback) {
+      if (value === "") {
+        callback();
+        return;
+      }
+      else {
+        value = value.split(";");
+        value.forEach( item =>{
+          if( item.search(/^(\d{1,3}\.){3}\d{1,3}\/\d{1,2}$/) == -1 ){
+            callback(new Error("格式错误"))
+            return;
+          }
+        })
+      }
+      callback();
+    },
+
     show(i) {
       this.currentProblem = i;
       this.selectVisible = true;
@@ -101,6 +133,10 @@ export default{
         if (!this.checkProblemsValidation()) {
           return;
         }
+        let ipRange=[];
+        if(this.formValue.ipRange != ""){
+          ipRange = this.formValue.ipRange.split(";");
+        }
         let params = {
           id: this.id,
           title: this.formValue.title,
@@ -109,10 +145,13 @@ export default{
           startTime: this.formValue.timeRange[0],
           endTime: this.formValue.timeRange[1],
           problemConfig: this.problemSet,
+          courseId: this.formValue.examCourse,
+          allowedIpRanges: ipRange,
         }
         api.adminUpdateExam(params)
         .then( resp=>{
           this.$Message.success("保存成功");
+          window.location.href="./exam-list.html";
         }, err=>{
           console.log(err.data);
         })
@@ -124,7 +163,7 @@ export default{
       if( this.formValue.timeRange[0] == "" || this.formValue.timeRange[1] == ""){
         return "";
       }
-      let duration = moment.duration(moment(this.formValue.timeRange[1]).diff(moment(this.formValue.timeRange[0]), 'seconds'), 'seconds')
+      let duration = dayjs.duration(dayjs(this.formValue.timeRange[1]).diff(dayjs(this.formValue.timeRange[0]), 'seconds'), 'seconds')
       let h = Math.floor(duration.asHours());
       let m = duration.minutes();
       let ret = Math.floor(duration.asHours()).toString() + " 小时 ";
@@ -134,17 +173,34 @@ export default{
       ret += m.toString();
       ret += " 分钟 ";
       return ret;
+    },
+    isModifyExam(){
+      return (this.id != null);
     }
+  },
+  watch:{
   },
   mounted(){
     this.id = utils.getUrlKey("id");
+    api.adminGetAllCourseBrief()
+    .then(resp=>{
+      // console.log(resp.data);
+      for( let key in resp.data ){
+        this.courseList.push({name:key, courses:resp.data[key]});
+      }
+      if( this.formValue.examCourse == null ){
+        this.formValue.examCourse = this.courseList[0].courses[0].id;
+      }
+    }, err=>{
+    })
     if( this.id != null ){
       api.adminGetExam( this.id )
       .then(resp=>{
         this.formValue.title = resp.data.title;
         this.formValue.description = resp.data.description;
         this.formValue.timeRange = [new Date(resp.data.startTime), new Date(resp.data.endTime)];
-        this.formRule.ipRange = resp.data.ipRange;
+        this.formValue.ipRange = (resp.data.allowedIpRanges).join(";");
+        this.formValue.examCourse = resp.data.courseId;
         this.problemSet = resp.data.problemConfig;
       },err=>{
       })
@@ -155,18 +211,32 @@ export default{
 
 
 <template>
-  <NavBarAdmin active-menu="/admin/exam-list.html"></NavBarAdmin>
+  <NavBarAdmin active-menu="./exam-list.html" v-model="userInfo"></NavBarAdmin>
   <div class="content-app">
     <Content :style="{ padding: '0 50px' }">
       <TitledPanel id="problem-info">
         <template #title>
           <div>
-            编辑考试
-            <Button @click="console.log(problemSet)">查看</Button>
+            <template v-if="isModifyExam">
+              编辑考试 ({{ id }})
+            </template>
+            <template v-else>
+              新建考试
+            </template>
+            <!-- <Button @click="console.log(problemSet)">看</Button> -->
           </div>
         </template>
         <Form ref="formValue" :model="formValue" :rules="formRule" :label-width="80">
-          <Row>
+          <Row :gutter="20">
+            <Col span="6">
+            <FormItem label="考试课程" prop="examCourse">
+              <Select v-model="formValue.examCourse" :disabled="isModifyExam">
+                <OptionGroup v-for="owner, key in courseList" :label="owner.name">
+                  <Option v-for="item,k1 in owner.courses" :value="item.id">{{ item.courseName+" -  "+item.owner }}</Option>
+                </OptionGroup>
+              </Select>
+            </FormItem>
+            </Col>
             <Col span="12">
             <FormItem label="考试名称" prop="title">
               <Input v-model="formValue.title" placeholder="考试名称"></Input>
@@ -182,9 +252,10 @@ export default{
             <span style="padding-left:20px">考试时长：{{ timeLast }}</span>
           </FormItem>
           <Row>
-            <Col span="12">
-            <FormItem label="ip限制" prop="ip_range">
+            <Col span="10">
+            <FormItem label="ip限制" prop="ipRange">
               <Input v-model="formValue.ipRange" placeholder="ip限制"></Input>
+              <span>格式：网段/掩码，以英文分号<code>;</code>分割。例如（192.168.1.0/24;192.169.0.0/16）</span>
             </FormItem>
             </Col>
           </Row>
@@ -243,7 +314,14 @@ export default{
         </Table>
       </TitledPanel>
       <div style="margin: 20px auto; width:60%">
-        <Button type="primary" long @click="saveExam('formValue')"> 保存并发布考试 </Button>
+        <Button type="primary" long @click="saveExam('formValue')">
+          <template v-if="id==null">
+            新建并发布考试
+          </template>
+          <template v-else>
+            保存并发布考试
+          </template>
+        </Button>
       </div>
     </Content>
   </div>

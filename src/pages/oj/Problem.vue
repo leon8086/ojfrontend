@@ -1,20 +1,21 @@
 <script setup>
-import NavBar from '@/components/NavBar.vue'
-import CodeMirror from '@/components/CodeMirror.vue'
-import XMUTFooter from '@/components/XMUTFooter.vue'
-import TitledPanel from '@/components/TitledPanel.vue'
-import utils from '@/utils'
-import {JUDGE_STATUS, DIFFICULTY_COLOR} from '../../utils/constants'
+import NavBar from '@/components/NavBar.vue';
+import CodeMirror from '@/components/CodeMirror.vue';
+import XMUTFooter from '@/components/XMUTFooter.vue';
+import TitledPanel from '@/components/TitledPanel.vue';
+import Highlight from '@/components/Highlight.vue';
+import utils from '@/utils';
+import {JUDGE_STATUS, DIFFICULTY_COLOR} from '@/utils/constants';
 import {Modal, Copy} from 'view-ui-plus';
 
 import { MdPreview } from 'md-editor-v3';
 import 'md-editor-v3/lib/preview.css';
 
 import { ref, reactive, onMounted, computed } from 'vue';
-import api from '../../api';
+import api from '@/api';
 const statusVisible = ref(false);
 const submissionExists = ref(false);
-let submissionId = "";
+const submissionId = ref("");
 const result = reactive({ result: 9, });
 
 const submitting = ref(false);
@@ -30,12 +31,47 @@ const problem = ref({
           title: '测试题',
           description: '测试描述',
           hint: '',
-          my_status: '',
+          status: 0,
           template: {},
           languages: [],
           tags: [],
           difficulty: "Low",
+          submissionList: [],
         });
+
+
+const tableColumns = ref([
+  {
+    title:"id",
+    slot: 'id',
+    width: 60,
+    align:"center",
+  },
+  {
+    title:"状态",
+    slot: 'status',
+    align:"center",
+    width: 120,
+  },
+  {
+    title:"时间",
+    slot:"time",
+    align:"center",
+    width: 100,
+  },
+  {
+    title:"内存",
+    slot:"memory",
+    align:"center",
+    width: 100,
+  },
+  {
+    title:"详情",
+    slot:"info",
+    align:"center",
+  },
+]);
+
 
 let refreshTimer = 0;
 
@@ -57,7 +93,7 @@ const checkSubmissionStatus = function(){
     refreshTimer = 0;
   }
   const checkStatus = () =>{
-    let id = submissionId;
+    let id = submissionId.value;
     clearTimeout(refreshTimer);  // 清掉timer
     refreshTimer = 0;
     api.getSubmissionResult(id)
@@ -69,7 +105,12 @@ const checkSubmissionStatus = function(){
       }
       submitting.value = false;
       submitted.value = false;
-      return;
+      let tmp_code = code.value;
+      api.getProblemDetail(problemID.value)
+      .then(resp => {
+        problem.value = resp.data
+        code.value = tmp_code;
+      });
     }, err =>{
       submitting.value = false;
     })
@@ -78,14 +119,14 @@ const checkSubmissionStatus = function(){
 }
 
 const submitCode = function(){
-  if(code.value.trim() === ""){
+  if(code.value==null || code.value.trim() === ""){
     Modal.error({
       title:"错误",
       content:"不能提交空代码！",
     })
     return;
   }
-  submissionId = '';
+  submissionId.value = '';
   result.value = {result: 9};
   submitting.value = true;
   let data = {
@@ -95,17 +136,13 @@ const submitCode = function(){
   }
   api.submitCode(data)
   .then(resp => {
-    submissionId = resp.data.id;
+    submissionId.value = resp.data.id;
     submitting.value = false;
     submissionExists.value = true;
     submitted.value = true
     statusVisible.value = true;
     checkSubmissionStatus();
-  })
-}
-
-const changeLanguage = function( new_lang ){
-  language.value = new_lang;
+  });
 }
 
 onMounted(() => {
@@ -126,7 +163,7 @@ const submissionStatus = computed(()=> {
 
 </script>
 <template>
-  <NavBar :activeMenu="'/problem-list.html'"></NavBar>
+  <NavBar activeMenu="problem-list.html"></NavBar>
   <div class="content-app">
     <Content :style="{padding:'0 50px'}">
       <TitledPanel>
@@ -145,7 +182,14 @@ const submissionStatus = computed(()=> {
                   <Tag :color="DIFFICULTY_COLOR[problem.difficulty]">{{ $t('m.' + problem.difficulty) }}</Tag>
                 </td>
                 <td>{{ $t('m.Score') }}：{{ problem.totalScore }}</td>
-                <td>{{ $t('m.HaveACed') }}</td>
+                <td>
+                  <template v-if="problem.status != null">
+                    <Tag :color="JUDGE_STATUS[problem.status].color"> {{ $t('m.' + JUDGE_STATUS[problem.status].name.replace(/ /g, '_'))  }} </Tag>
+                  </template>
+                  <template v-else>
+                    <Tag> 未提交 </Tag>
+                  </template>
+                </td>
               </tr>
             </table>
           </div>
@@ -156,11 +200,11 @@ const submissionStatus = computed(()=> {
               <Scroll :height="780" style="background-color: white;" class="split-panel">
                 <div class="markdown-body" id="problem-content">
                   <p class="title">{{ $t('m.Description') }}</p>
-                  <MdPreview editorId="preview-only" :modelValue="problem.description" :codeFoldable="false" codeTheme="github" previewTheme="github"/>
+                  <MdPreview editorId="preview-only" :modelValue="problem.description" :showCodeRowNumber="false" :codeFoldable="false" codeTheme="github" previewTheme="github"/>
                   <p class="title">{{ $t('m.Input') }}</p>
-                  <MdPreview editorId="preview-only" :modelValue="problem.inputDescription" :codeFoldable="false" codeTheme="github" previewTheme="github"/>
+                  <MdPreview editorId="preview-only" :modelValue="problem.inputDescription" :showCodeRowNumber="false" :codeFoldable="false" codeTheme="github" previewTheme="github"/>
                   <p class="title">{{ $t('m.Output') }}</p>
-                  <MdPreview editorId="preview-only" :modelValue="problem.outputDescription" :codeFoldable="false" codeTheme="github" previewTheme="github"/>
+                  <MdPreview editorId="preview-only" :modelValue="problem.outputDescription" :showCodeRowNumber="false" :codeFoldable="false" codeTheme="github" previewTheme="github"/>
                   <div v-for="(sample, index) of problem.samples" :key="index">
                     <div class="flex-container sample">
                       <div class="sample-input">
@@ -194,15 +238,16 @@ const submissionStatus = computed(()=> {
                   <Col :span="10">
                   <div class="status" v-if="statusVisible">
                     <span>{{ $t('m.Status') }}</span>
-                    <Tag :color="submissionStatus.color" size="medium" @click.native="console.log('');">
-                      {{ $t('m.' + submissionStatus.text.replace(/ /g, "_")) }}
-                    </Tag>
+                    <a :href="'/submission.html?id='+submissionId" target="_blank">
+                      <Tag :color="submissionStatus.color" size="medium" @click.native="console.log('');">
+                        {{ $t('m.' + submissionStatus.text.replace(/ /g, "_")) }}
+                      </Tag>
+                    </a>
                   </div>
-                  <div v-if="problem.my_status === 0">
-                    <Alert type="success" show-icon>{{ $t('m.You_have_solved_the_problem') }}</Alert>
+                  <div v-if="problem.status === 0 && !statusVisible" style="width:130px">
+                    <Alert type="success" show-icon>已解决</Alert>
                   </div>
                   </Col>
-
                   <Col :span="12">
                   <Button type="primary" icon="edit" :loading="submitting" @click="submitCode"
                     :disabled="problemSubmitDisabled || submitted" class="fl-right">
@@ -216,13 +261,74 @@ const submissionStatus = computed(()=> {
           </Split>
         </div>
       </TitledPanel>
+      <TitledPanel id="submission">
+        <template #title>
+          我的提交（ {{ problem.submissionList.length }} ）
+        </template>
+        <Collapse accordion>
+          <Panel v-for="(item,key) in problem.submissionList" :class="'custom-bg-'+JUDGE_STATUS[item.result].color">
+            <div :style="{ display: 'inline-block' }" >
+              <span style="padding-right: 30px">{{ utils.utcToLocal(item.createTime) }}</span>
+              <Tag :color="JUDGE_STATUS[item.result].color">{{$t('m.' + JUDGE_STATUS[item.result].name.replace(/ /g, '_'))}}</Tag>
+            </div>
+            <template #content>
+              <Row :gutter="5">
+                <Col :span="10">
+                  <Tooltip content="复制代码" placement="top-start">
+                    <Button icon="ios-copy" style="margin-left:0px;margin-top:5px;" @click="Copy({text:item.code})"></Button>
+                  </Tooltip>
+                  <Highlight :code="item.code" :language="item.language"></Highlight>
+                </Col>
+                <Col :span="14">
+                  <template v-if="item.result==-2">
+                    <pre class="custom-bg-purple" style="padding: 20px">{{item.statisticInfo.err_info}}</pre>
+                  </template>
+                  <template v-else>
+                    <Collapse accordion style="text-align: left;">
+                      <Panel v-for="row, index in item.info.data" :class="'custom-bg-'+JUDGE_STATUS[row.result].color">
+                        <div :style="{ display: 'inline-block' }" >
+                          <div style="padding-right: 30px; text-align: right; width: 50px; display:inline-block">{{ index+1 }}</div>
+                          <Tag :color="JUDGE_STATUS[row.result].color">
+                            {{$t('m.' + JUDGE_STATUS[row.result].name.replace(/ /g, '_'))}}
+                            {{ utils.submissionTimeFormat(row.cpu_time) }}
+                            {{ utils.submissionMemoryFormat(row.memory) }}
+                          </Tag>
+                        </div>
+                        <template #content>
+                          <Row :gutter="5">
+                            <Col :span="8">
+                            <h3>输入</h3>
+                            <Input :rows="8" type="textarea" v-model="row.input" class="sample-text" readonly>
+                            </Input>
+                            </Col>
+                            <Col :span="8">
+                            <h3>输出</h3>
+                            <Input :rows="8" type="textarea" v-model="row.answer" class="sample-text" readonly>
+                            </Input>
+                            </Col>
+                            <Col :span="8">
+                            <h3>预计</h3>
+                            <Input :rows="8" type="textarea" v-model="row.output" class="sample-text" readonly>
+                            </Input>
+                            </Col>
+                          </Row>
+                        </template>
+                      </Panel>
+                    </Collapse>
+                  </template>
+                </Col>
+              </Row>
+            </template>
+          </Panel>
+        </Collapse>
+      </TitledPanel>
     </Content>
   </div>
   <XMUTFooter></XMUTFooter>
 </template>
 
 
-<style lang="less" scoped>
+<style lang="less">
   .split {
     height: 780px;
     border: 1px solid #dcdee2;
@@ -336,5 +442,8 @@ const submissionStatus = computed(()=> {
   }
   .fl-right {
     float: right;
+  }
+  pre{
+    margin-top: 0px;
   }
 </style>

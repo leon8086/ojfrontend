@@ -2,18 +2,21 @@
 <script setup>
 import NavBarAdmin from '@/components/NavBarAdmin.vue';
 import XMUTFooter from '@/components/XMUTFooter.vue';
-import ModifyCourse from '../../components/ModifyCourse.vue';
-import TitledPanel from '../../components/TitledPanel.vue';
-import ImportResult from '../../components/ImportResult.vue';
-import ImportUsers from '../../components/ImportUsers.vue';
-import SlimPage from '../../components/SlimPage.vue';
+import ModifyCourse from '@/components/ModifyCourse.vue';
+import TitledPanel from '@/components/TitledPanel.vue';
+import ImportResult from '@/components/ImportResult.vue';
+import ImportUsers from '@/components/ImportUsers.vue';
+import Pagination from '@/components/Pagination.vue';
+import SlimPage from '@/components/SlimPage.vue';
 
 import { ref, reactive, onMounted, resolveComponent } from 'vue';
 import i18n from '@/i18n';
 import api from '@/api';
 import utils from '@/utils';
-import { isAdmin, pageIndex } from '../../utils/globalInfo';
-import { USER_TYPE } from '../../utils/constants';
+import { isAdmin, isSuperAdmin, pageIndex } from '@/utils/globalInfo';
+import { USER_TYPE } from '@/utils/constants';
+import { af } from 'element-plus/es/locale/index.mjs';
+import { Message, Modal } from 'view-ui-plus';
 
 const filterByKeyword = function(){
 }
@@ -79,17 +82,23 @@ const newCourse = function(){
     isClosed: false,
     studentList:[],
   };
-  if(isAdmin(userInfo)){
+  if(!isSuperAdmin(userInfo)){
     formCourse.value.ownerId = userInfo.value.id;
   }
   showDetail.value = true;
 }
 
 const doModify = function(){
-  api.adminModifyCourse( formCourse.value )
-  .then( resp=>{
-    getCourse();
-  }, err=>{
+  modifyCourseRef.value.validate((valid)=>{
+    if( !valid ){
+      Message.error("请检查必填项");
+      return;
+    }
+    api.adminModifyCourse( formCourse.value )
+    .then( resp=>{
+      getCourse();
+    }, err=>{
+    })
   })
 }
 
@@ -100,7 +109,6 @@ const getCourse = function(){
     query.total = resp.data.totalRow;
     query.limit = resp.data.pageSize;
     courseList.value = resp.data.records;
-    //console.log(courseList.value);
   }, err=>{
   })
 }
@@ -120,13 +128,15 @@ const editStudents = function( index ){
     usernameExists.value.push(item.username);
   })
   showStudents.value = true;
-  courseImportId.value = courseList.value[index].id;
+  editCourseId.value = courseList.value[index].id;
 }
 
 const deleteCourse = function(index){
 }
 
 const editCourse = function( index ){
+  formCourse.value = courseList.value[index];
+  showDetail.value = true;
 }
 
 const switchStatus = function( index ){
@@ -146,7 +156,7 @@ const studentColumn = ref([
   },
   {
     title: "年级",
-    key: "grade",
+    slot: "grade",
     align: "center",
   },
   {
@@ -166,7 +176,7 @@ const studentColumn = ref([
   },
 ]);
 
-const courseImportId = ref(0)
+const editCourseId = ref(0)
 
 const isUserNameExists = function( name, curList ){
   for( let i=0; i<curList.length; ++i ){
@@ -185,7 +195,7 @@ const importUsers = function( valid ){
     item.isDisabled = false;
     final.push(item);
   });
-  let course = { id: courseImportId.value, students:final }
+  let course = { id: editCourseId.value, students:final }
   api.adminImportCourseStudents( course )
   .then(resp=>{
     importResult.value.insert = resp.data.insert;
@@ -199,20 +209,6 @@ const importUsers = function( valid ){
 const showResult = ref(false);
 const importResult = ref({ insert:0, failed:[] });
 
-const doImport = function(){
-  // studentList.value.forEach( item =>{
-  //   item.adminType = USER_TYPE.REGULAR_USER;
-  //   item.isDisabled = false;
-  // })
-  // let course = { id: courseImportId.value, students:studentList.value }
-  // api.adminImportCourseStudents( course )
-  // .then(resp=>{
-  //   importResult.value = resp.data;
-  //   showResult.value = true;
-  // }, err=>{
-  // })
-}
-
 const onFinished = function(){
   getCourse();
 }
@@ -222,22 +218,132 @@ const deleteUser = function( index ){
 
 const deleteNewUser = function( index ){
   let curIndex = pageIndex( index, query );
-  console.log(query);
-  console.log(curIndex);
+  //console.log(query);
+  //console.log(curIndex);
   studentList.value.splice( curIndex, 1 );
 }
 
 const resetPassword = function( index ){
 }
 
+const gradeMap = ref({});
+
+const getGradeMap = function(){
+  api.getGrade()
+  .then(resp=>{
+    resp.data.forEach( item=>{
+      gradeMap.value[item.id] = item;
+    })
+  })
+}
+
 onMounted(() => {
   getCourse();
-})
-</script>
+  getGradeMap();
+});
 
+const showAddStudent = ref(false);
+
+const addExistStudent = function(){
+  userQuery.id = editCourseId.value;
+  loadUserSelection();
+  showAddStudent.value = true;
+}
+
+const userQuery = reactive({keyword:'', id:null });
+const totalUsers = ref([]);
+let totalUserMap = {};
+const targetKeys = ref([]);
+let beforeMap = {};
+let afterMap = {};
+
+const handleUserChange = function (newKeys, direction, moveKeys){
+  targetKeys.value = newKeys;
+  if( direction == "right"){ // 添加
+    moveKeys.forEach( item=>{
+      afterMap[item] = totalUserMap[item];
+    });
+  }
+  if( direction == "left"){ // 删除
+    moveKeys.forEach( item=>{
+      delete afterMap[item];
+    });
+  }
+};
+
+const loadUserSelection = function(){
+  beforeMap = {};
+  afterMap = {};
+  totalUserMap = {};
+  totalUsers.value = [];
+  api.getNoAdmin()
+  .then(resp=>{
+    resp.data.forEach( item=>{
+      item.key = item.id.toString();
+      totalUserMap[item.key] = item;
+    });
+    api.adminGetCourseStudents( userQuery.id )
+    .then(exists=>{
+      targetKeys.value=[];
+      exists.data.forEach( item=>{
+        targetKeys.value.push( item.id.toString())
+        beforeMap[item.id.toString()] = totalUserMap[item.id.toString()];
+        afterMap[item.id.toString()] = totalUserMap[item.id.toString()];
+      })
+      totalUsers.value = resp.data;
+    });
+  })
+};
+
+const renderUser = function(item){
+  return (item.gradeName)+" -- "+(item.username);
+}
+
+const doModifyStudent = function(){
+  let newAdd = [];
+  let remove = [];
+  for( let key in afterMap ){
+    if( key in beforeMap ){
+      continue;
+    }
+    newAdd.push(afterMap[key].id);
+  }
+  for( let key in beforeMap ){
+    if( key in afterMap ){
+      continue;
+    }
+    remove.push(beforeMap[key].id);
+  }
+  api.adminUpdateCourseStudents( userQuery.id, newAdd, remove )
+  .then(resp=>{
+    if( resp.data.length==0 ){
+      Modal.success({
+        title:"调用成功",
+        content: "调用成功",
+      });
+      return;
+    }
+    else{
+      let s = "<h1>处理"+resp.data.length.toString()+"条失败</h1>";
+      s += "<ul>";
+      for( let i=0; i<resp.data.length; ++i ){
+        s += "<li>"+resp.data[i].id+":"+resp.data[i].error+"</li>";
+      }
+      s += "</ul>"
+      Modal.success({
+        title:"调用结果",
+        content: s,
+      });
+    }
+  })
+}
+
+const modifyCourseRef = ref(null);
+
+</script>
 <template>
   <Layout>
-    <NavBarAdmin :activeMenu="'/admin/course-list.html'" v-model="userInfo"></NavBarAdmin>
+    <NavBarAdmin :activeMenu="'./course-list.html'" v-model="userInfo"></NavBarAdmin>
     <div class="content-app">
       <Content :style="{padding:'0 50px'}">
         <TitledPanel>
@@ -310,18 +416,21 @@ onMounted(() => {
         <h2>
           班级编辑
           <template v-if="formCourse.id == null">
-            （新用户）
+            （新班级）
           </template>
           <template v-else>
             （{{formCourse.id}}）
           </template>
         </h2>
       </template>
-      <ModifyCourse v-model="formCourse" :exists="isExists" :user-info="userInfo"></ModifyCourse>
+      <ModifyCourse ref="modifyCourseRef" v-model="formCourse" :exists="isExists" :user-info="userInfo"></ModifyCourse>
     </Modal>
     <Modal v-model="showStudents" :width="1200" :style="{top:'20px'}">
       <template #header>
-        <h2>编辑学生</h2>
+        <h2>
+          编辑学生
+          <Button type="primary" icon="md-add" @click="addExistStudent">编辑班级学生</Button>
+        </h2>
       </template>
       <SlimPage :columns="studentColumn" :data="studentList" :page-size="10" v-model="studentPage">
         <template #id="{ row }">
@@ -336,12 +445,7 @@ onMounted(() => {
             {{ row.username }}
         </template>
         <template #grade="{ row }">
-          <template v-if="row.grade != null">
-            {{ row.grade }}
-          </template>
-          <template v-else>
-            -
-          </template>
+          {{ row.gradeName }}
         </template>
         <template #email="{ row }">
           {{ row.email }}
@@ -351,10 +455,6 @@ onMounted(() => {
         </template>
         <template #operation="{ row, index }">
           <div class="operation" v-if="row.id != null">
-            <Tooltip content="移除用户" placement="top-start">
-              <Button icon="ios-trash" @click="deleteUser(index)">
-              </Button>
-            </Tooltip>
             <Tooltip content="重置用户密码" placement="top-start">
               <Button icon="ios-refresh" @click="resetPassword(index)">
               </Button>
@@ -370,6 +470,18 @@ onMounted(() => {
       </SlimPage>
       <ImportUsers @upload="importUsers" :exists="usernameExists"></ImportUsers>
       <ImportResult v-model="showResult" :insert="importResult.insert" :failed="importResult.failed" @finished="onFinished"></ImportResult>
+    </Modal>
+    <Modal v-model="showAddStudent" :width="1000" :style="{top:'20px'}" @on-ok="doModifyStudent">
+      <h2>请选择学生</h2>
+       <Transfer
+        :data="totalUsers"
+        :target-keys="targetKeys"
+        :titles="['可添加学生','已有学生']"
+        filterable
+        :filter-method="(data, query) => data.username.indexOf(query) > -1"
+        :render-format="renderUser"
+        :list-style="{width:'440px', height:'800px'}"
+        @on-change="handleUserChange"/>
     </Modal>
     <XMUTFooter></XMUTFooter>
   </Layout>

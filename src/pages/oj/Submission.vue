@@ -1,14 +1,17 @@
 <script setup>
-import api from '../../api';
-import {JUDGE_STATUS} from '../../utils/constants';
+import api from '@/api';
+import {JUDGE_STATUS} from '@/utils/constants';
 import utils from '@/utils';
 import NavBar from '@/components/NavBar.vue';
 import Highlight from '@/components/Highlight.vue';
 import XMUTFooter from '@/components/XMUTFooter.vue';
+import { MdPreview } from 'md-editor-v3';
+import 'md-editor-v3/lib/preview.css';
 import TitledPanel from '@/components/TitledPanel.vue';
 import CodeMirror from '@/components/CodeMirror.vue';
 import { ref, onMounted, computed, resolveComponent } from 'vue';
 import i18n from '@/i18n';
+import { CENTERED_ALIGNMENT } from 'element-plus/es/components/virtual-list/src/defaults.mjs';
 
 const submission = ref({
   result: '0',
@@ -57,6 +60,38 @@ const isCE = computed(() => {
   return submission.value.result === -2
 });
 
+const tableColumns = ref([
+  {
+    title:"id",
+    slot: 'id',
+    width: 80,
+    align:"center",
+  },
+  {
+    title:"状态",
+    slot: 'status',
+    align:"center",
+    width: 120,
+  },
+  {
+    title:"时间消耗",
+    slot:"time",
+    align:"center",
+    width: 100,
+  },
+  {
+    title:"内存消耗",
+    slot:"memory",
+    align:"center",
+    width: 100,
+  },
+  {
+    title:"详情",
+    slot:"info",
+    align:"center",
+  },
+]);
+
 const isAdminRole = computed(() => {
   return true;
 })
@@ -75,7 +110,7 @@ const split = ref(0.55)
 
 
 <template>
-  <NavBar :activeMenu="'/submission-list.html'"></NavBar>
+  <NavBar activeMenu="submission-list.html"></NavBar>
   <div class="content-app">
     <Content :style="{padding:'0 50px'}">
       <TitledPanel>
@@ -86,32 +121,50 @@ const split = ref(0.55)
               <pre>{{submission.statisticInfo.err_info}}</pre>
             </template>
             <template v-else>
-              <table class="ivu-table result-detail" style="border-collapse: collapse;">
-                <tr>
-                  <th>用例</th>
-                  <th v-for="item in submission.info.data">{{ item.test_case }}</th>
-                </tr>
-                <tr>
-                  <th>状态</th>
-                  <td v-for="item in submission.info.data">
-                    <Tag :color="JUDGE_STATUS[item.result].color">
-                      {{ $t('m.' + JUDGE_STATUS[item.result].name.replace(/ /g, '_')) }}
-                    </Tag>
-                  </td>
-                </tr>
-                <tr>
-                  <th>用时</th>
-                  <td v-for="item in submission.info.data">
-                    {{ utils.submissionTimeFormat(item.cpu_time) }}
-                  </td>
-                </tr>
-                <tr>
-                  <th>内存</th>
-                  <td v-for="item in submission.info.data">
-                    {{ utils.submissionMemoryFormat(item.memory) }}
-                  </td>
-                </tr>
-              </table>
+              <Table :columns="tableColumns" :data="submission.info.data">
+                <template #id="{row,index}">
+                  {{ index+1 }}
+                </template>
+                <template #status="{row,index}">
+                  <Tag :color="JUDGE_STATUS[row.result].color">
+                    {{ $t('m.' + JUDGE_STATUS[row.result].name.replace(/ /g, '_')) }}
+                  </Tag>
+                </template>
+                <template #time="{row,index}">
+                  {{ utils.submissionTimeFormat(row.cpu_time) }}
+                </template>
+                <template #memory="{row,index}">
+                  {{ utils.submissionMemoryFormat(row.memory) }}
+                </template>
+                <template #info="{row,index}">
+                  <template v-if="row.result != 0">
+                    <Collapse accordion style="text-align: left;">
+                      <Panel>
+                        详情（只输出前50个字符）
+                        <template #content>
+                          <Row :gutter="5">
+                            <Col :span="8">
+                            <h3>输入</h3>
+                            <Input :rows="8" type="textarea" v-model="row.input" class="sample-text" readonly>
+                            </Input>
+                            </Col>
+                            <Col :span="8">
+                            <h3>输出</h3>
+                            <Input :rows="8" type="textarea" v-model="row.answer" class="sample-text" readonly>
+                            </Input>
+                            </Col>
+                            <Col :span="8">
+                            <h3>预计</h3>
+                            <Input :rows="8" type="textarea" v-model="row.output" class="sample-text" readonly>
+                            </Input>
+                            </Col>
+                          </Row>
+                        </template>
+                      </Panel>
+                    </Collapse>
+                  </template>
+                </template>
+              </Table>
             </template>
           </Card>
         </template>
@@ -123,11 +176,14 @@ const split = ref(0.55)
                 {{ problem.displayId }} - {{problem.title}}
               </div>
               <p class="title">{{ $t('m.Description') }}</p>
-              <p class="content" v-html=problem.description></p>
+              <MdPreview editorId="preview-only" :modelValue="problem.description" :showCodeRowNumber="false"
+                :codeFoldable="false" codeTheme="github" previewTheme="github" />
               <p class="title">{{ $t('m.Input') }}</p>
-              <p class="content" v-html=problem.inputDescription></p>
+              <MdPreview editorId="preview-only" :modelValue="problem.inputDescription" :showCodeRowNumber="false"
+                :codeFoldable="false" codeTheme="github" previewTheme="github" />
               <p class="title">{{ $t('m.Output') }}</p>
-              <p class="content" v-html=problem.outputDescription></p>
+              <MdPreview editorId="preview-only" :modelValue="problem.outputDescription" :showCodeRowNumber="false"
+                :codeFoldable="false" codeTheme="github" previewTheme="github" />
               <div v-if="problem.hint">
                 <p class="title">{{ $t('m.Hint') }}</p>
                 <Card dis-hover>
@@ -152,20 +208,12 @@ const split = ref(0.55)
         </Row>
       </TitledPanel>
     </Content>
-    <!-- <Col :span="20">
-    <CodeMirror v-model="submission.code"
-                :disabled="true"
-                :languageSet="[submission.language]"
-                :defaultLanguage="submission.language"
-                :style="{height:auto}"
-                ></CodeMirror>
-    </Col> -->
     <XMUTFooter></XMUTFooter>
   </div>
 </template>
 
 
-<style scoped lang="less">
+<style lang="less">
 .details{
   h1{
     padding-bottom: 15px;
@@ -178,22 +226,13 @@ const split = ref(0.55)
   }
 }
 
-.result-detail{
-  th, td{
-    height: auto;
-    padding: 5px 5px;
-  }
-  th{
-    text-align: center;
-  }
-  td{
-    text-align: center;
-    border-right: thin solid #dddddd;
-  }
+.sample-text textarea.ivu-input{
+  font-family : 'Courier New', Courier, monospace !important;
 }
+
 #problem-content {
   background-color: white;
-  padding: 10px 40px 40px 20px;
+  padding: 10px 40px 40px 40px;
 
   .title-info {
     display: flex;
@@ -252,4 +291,5 @@ const split = ref(0.55)
   color: var(--xmut-cs-color);
   font-weight: bolder;
 }
+
 </style>

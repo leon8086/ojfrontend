@@ -13,28 +13,16 @@ const website = ref({
   website_name_shortcut:"测试"
 });
 
-const handleRoute = function (route) {
-  if( route == "/logout"){
-    logout();
-    return;
-  }
-  window.location.href = route;
-};
-
-const logout = function(){
-  api.logout()
-  .then(resp=>{
-    window.location.href="/login.html";
-  })
+const checkRole = function(){
 }
 
-const checkRole = function(){
+const handleRoute = function(route){
+  window.location.href = route;
 }
 
 onMounted(()=>{
   useGlobalInfo( website );
   useCheckAdminLogin(userInfo);
-  //userInfo.value = getUserLoginInfo();
 });
 
 </script>
@@ -42,50 +30,58 @@ onMounted(()=>{
 <template>
   <div id="header">
     <Menu theme="light" mode="horizontal" @on-select="handleRoute" :active-name="activeMenu" class="oj-menu">
-      <div class="logo"><span>{{website.website_name}}</span></div>
-      <Menu-item name="/">
-        <Icon type="ios-undo"></Icon>
-         返回正常模式
+      <div class="logo" @click="console.log(userInfo)">
+        <img src="/logo.svg" width="80px">
+        <span>{{website.website_name}}</span>
+      </div>
+      <Menu-item name="../">
+        <a href="../">
+          <Icon type="ios-undo"></Icon>
+          返回正常模式
+        </a>
       </Menu-item>
-      <Menu-item name="/admin/global-config.html">
+      <Menu-item name="./">
+        <a href="./">
         <Icon type="ios-settings"></Icon>
-         全局管理
+         全局配置
+        </a>
       </Menu-item>
-      <Menu-item name="/admin/course-list.html">
-        <Icon type="ios-contacts"></Icon>
-         班级管理
+      <Menu-item name="./course-list.html">
+        <a href="./course-list.html">
+          <Icon type="ios-contacts"></Icon>
+          班级管理
+        </a>
       </Menu-item>
-      <Menu-item name="/admin/user-list.html">
-        <Icon type="ios-contacts"></Icon>
-         用户管理
+      <Menu-item name="./user-list.html">
+        <a href="./user-list.html">
+          <Icon type="ios-contacts"></Icon>
+          用户管理
+        </a>
       </Menu-item>
-      <Menu-item name="/admin/problem-list.html">
-        <Icon type="ios-menu"></Icon>
-         题目管理
+      <Menu-item name="./problem-list.html">
+        <a href="./problem-list.html">
+          <Icon type="ios-menu"></Icon>
+          题目管理
+        </a>
       </Menu-item>
-      <Menu-item name="/admin/tag-list.html">
-        <Icon type="ios-pricetags-outline"></Icon>
-         标签管理
+      <Menu-item name="./tag-list.html">
+        <a href="./tag-list.html">
+          <Icon type="ios-pricetags-outline"></Icon>
+          标签和年级管理
+        </a>
       </Menu-item>
-      <Menu-item name="/admin/exam-list.html">
-        <Icon type="ios-paper"></Icon>
-         考试管理
+      <Menu-item name="./exam-list.html">
+        <a href="./exam-list.html">
+          <Icon type="ios-paper"></Icon>
+          考试管理
+        </a>
       </Menu-item>
-      <Menu-item name="/admin/hw-list.html">
-        <Icon type="ios-paper-outline"></Icon>
-        作业管理
+      <Menu-item name="./homework-list.html">
+        <a href="./homework-list.html">
+          <Icon type="ios-paper-outline"></Icon>
+          作业管理
+        </a>
       </Menu-item>
-      <Dropdown class="drop-menu" @on-click="handleRoute" placement="bottom">
-        <Button type="text" class="drop-menu-title">{{ userInfo.username }}
-          <Icon type="ios-arrow-down"></Icon>
-        </Button>
-        <template #list>
-          <Dropdown-menu>
-            <Dropdown-item name="/setting/profile">{{$t('m.Settings')}}</Dropdown-item>
-            <Dropdown-item divided name="/logout">{{$t('m.Logout')}}</Dropdown-item>
-          </Dropdown-menu>
-        </template>
-      </Dropdown>
     </Menu>
   </div>
 </template>
@@ -113,6 +109,8 @@ onMounted(()=>{
     line-height: 60px;
     color: var(--xmut-cs-color);
     font-weight: bolder;
+    display: flex;
+    align-items: center;
   }
 
   .drop-menu {
@@ -139,5 +137,12 @@ onMounted(()=>{
   &-body{
     padding-bottom: 20px;
   }
+}
+
+.ivu-menu-item a{
+  color: #515a6e
+}
+.ivu-dropdown-item a{
+  color: #515a6e
 }
 </style>

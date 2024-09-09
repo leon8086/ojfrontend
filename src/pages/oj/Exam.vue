@@ -1,15 +1,15 @@
 <script setup>
 import XMUTFooter from "@/components/XMUTFooter.vue";
-import { useGlobalInfo, getUserLoginInfo } from "../../utils/globalInfo";
+import { useGlobalInfo } from "@/utils/globalInfo";
 import utils from "@/utils";
-import {ref, onMounted, computed, reactive, onUnmounted, watch} from "vue";
+import {ref, onMounted, computed, reactive, onUnmounted, watch, h, resolveComponent} from "vue";
 import { Modal } from 'view-ui-plus';
 import Highlight from '@/components/Highlight.vue';
-import CodeMirror from "../components/CodeMirror.vue";
-import TitledPanel from "../components/TitledPanel.vue";
-import moment from 'moment';
-import {JUDGE_STATUS} from '../../utils/constants';
-import api from "../../api";
+import CodeMirror from "@/components/CodeMirror.vue";
+import TitledPanel from "@/components/TitledPanel.vue";
+import dayjs from 'dayjs';
+import {JUDGE_STATUS} from '@/utils/constants';
+import api from "@/api";
 
 import { MdPreview } from 'md-editor-v3';
 import 'md-editor-v3/lib/preview.css';
@@ -23,14 +23,15 @@ const website = ref({
 const examInfo = ref({
   id: null,
   name: "测试考试",
-  start_time: "2024-05-31T16:00:00Z",
-  end_time: "2028-12-31T16:00:00Z",
+  startTime: "2024-05-31T16:00:00Z",
+  endTime: "2028-12-31T16:00:00Z",
 })
 
 const examProfile = ref({
   score: 0,
   info: [],
-  problemConfig:[]
+  problemConfig:[],
+  isEnded:false,
 })
 
 const statusVisible = ref(false);
@@ -106,13 +107,22 @@ const submitCode = function(){
   console.log(data);
   api.submitExamCode(data)
   .then(resp => {
-    submissionId = resp.data.id;
-    submitting.value = false;
-    submissionExists.value = true;
-    submitted.value = true
-    statusVisible.value = true;
-    console.log(resp);
-    checkSubmissionStatus(problem.value);
+    if( resp.data.id != null ){
+      submissionId = resp.data.id;
+      submitting.value = false;
+      submissionExists.value = true;
+      submitted.value = true
+      statusVisible.value = true;
+      console.log(resp);
+      checkSubmissionStatus(problem.value);
+    }
+    else{
+      Modal.warning({
+        title: "提交失败",
+        content: "考试已结束",
+      });
+      submitting.value = false;
+    }
   })
 }
 
@@ -122,8 +132,6 @@ const submissionStatus = computed(()=> {
     color: JUDGE_STATUS[result.value.result]['color']
   };
 })
-
-const userInfo = ref({ login: false, })
 
 const problemList = ref([]);
 
@@ -141,24 +149,49 @@ const problem = ref({
         });
 
 const handleQuit = function () {
+  Modal.confirm({
+    title: "提醒",
+    content: "确定要结束考试吗？",
+    onOk:()=>{
+      quitExam();
+    }
+  })
 };
 
+const quitExam = function(){
+  api.quitExam(examId.value)
+  .then(resp=>{
+    window.location.href="./exam-rank?id="+examId.value;
+  }, err=>{
+  });
+}
+
 const timeRemains = ref({});
-const timeColor = ref("success");
 const examId = ref(null);
 
 const getProfile = function(){
   api.getExamProfile( examId.value )
   .then(resp=>{
     examProfile.value = resp.data;
+    //console.log(dayjs().isAfter(examInfo.value.endTime));
+    if( dayjs().isAfter(examInfo.value.endTime)){
+      examProfile.value.isEnded = true;
+    }
+    if(examProfile.value.isEnded){
+      Modal.confirm({
+        title:"考试已结束",
+        content:"点击确认跳转排名页面",
+        onOk:()=>{
+          window.location.href="./exam-rank.html?id="+examId.value;
+        }
+      });
+    }
   }, err=>{
-
   })
 }
 
 onMounted(()=>{
   useGlobalInfo( website );
-  userInfo.value = getUserLoginInfo();
   examId.value = utils.getUrlKey("id");
   api.getExamBrief(examId.value)
   .then(resp=>{
@@ -188,8 +221,8 @@ onMounted(()=>{
         }
       }, err=>{
       })
-      getProfile(); // 放在这里，保证profile必须在problems之后加载。
-    }
+    };
+    getProfile(); // 放在这里，保证profile必须在problems之后加载。
     problem.value = problemList.value[0];
   });
 
@@ -197,7 +230,7 @@ onMounted(()=>{
     //e.preventDefault();
   });
   setInterval( ()=>{
-    timeRemains.value = utils.duration(moment.now(), examInfo.value.endTime);
+    timeRemains.value = utils.duration(dayjs(), examInfo.value.endTime);
   });
 });
 
@@ -205,6 +238,21 @@ const activePanel = ref('0');
 
 const onTabClick = function(){
   problem.value = problemList.value[activePanel.value];
+  statusVisible.value = false;
+}
+
+const toExamRank = function(){
+  window.location.href="./exam-rank.html?id="+examId.value;
+}
+
+const scoreColor = function(score){
+  if( score < 50 ){
+    return "error";
+  }
+  if( score < 100 ){
+    return "warning"
+  }
+  return "success";
 }
 
 </script>
@@ -216,16 +264,29 @@ const onTabClick = function(){
         <Icon type="ios-create-outline" style="padding-right:5px"></Icon>
         <span>{{examInfo.title}}</span>
       </div>
-      <div class="time-remain">
-        <Icon type="ios-clock-outline"></Icon>
-        剩余时间：
-        <Tag type="dot" :color="timeRemains.color" large><span class="time-str">{{timeRemains.message}}</span></Tag>
-        <Icon type="ios-pie" style="padding-left:10px"></Icon>
-        得分：{{ examProfile.score }}
-      </div>
+      <template v-if="examProfile.isEnded">
+        <div class="time-remain">
+          考试已结束
+          <Icon type="ios-pie" style="padding-left:10px"></Icon>
+          得分：{{ examProfile.score }}
+        </div>
+      </template>
+      <template v-else>
+        <div class="time-remain">
+          <Icon type="ios-clock-outline"></Icon>
+          剩余时间：
+          <Tag type="dot" :color="timeRemains.color" large><span class="time-str">{{timeRemains.message}}</span></Tag>
+          <Icon type="ios-pie" style="padding-left:10px"></Icon>
+          得分：{{ examProfile.score }}
+        </div>
+      </template>
       <div class="btn-menu">
-        <Button type="primary" @click="handleQuit()">结束考试
-        </Button>
+        <template v-if="examProfile.isEnded">
+          <Button type="primary" @click="toExamRank()">打开排名</Button>
+        </template>
+        <template v-else>
+          <Button type="primary" @click="handleQuit()">结束考试</Button>
+        </template>
       </div>
     </Menu>
   </div>
@@ -250,18 +311,20 @@ const onTabClick = function(){
                         <tr>
                           <td>{{ $t('m.Time_Limit') }}：{{ item.timeLimit }}MS</td>
                           <td>{{ $t('m.Memory_Limit') }}：{{ item.memoryLimit }}MB</td>
-                          <td>{{ $t('m.Score') }}：{{ item.totalScore }}</td>
+                          <td>{{ $t('m.Score') }}：
+                            <Tag :color="scoreColor(examProfile.info[item.id])">{{ examProfile.info[item.id] }}/{{ item.totalScore }}</Tag>
+                          </td>
                         </tr>
                       </table>
                     </div>
                   </template>
                   <div class="markdown-body" id="problem-content">
                   <p class="title">{{ $t('m.Description') }}</p>
-                  <MdPreview editorId="preview-only" :modelValue="problem.description" :codeFoldable="false" :codeTheme="github" previewTheme="github"/>
+                  <MdPreview editorId="preview-only" :modelValue="problem.description" :showCodeRowNumber="false" :codeFoldable="false" codeTheme="github" previewTheme="github"/>
                   <p class="title">{{ $t('m.Input') }}</p>
-                  <MdPreview editorId="preview-only" :modelValue="problem.inputDescription" :codeFoldable="false" :codeTheme="github" previewTheme="github"/>
+                  <MdPreview editorId="preview-only" :modelValue="problem.inputDescription" :showCodeRowNumber="false" :codeFoldable="false" codeTheme="github" previewTheme="github"/>
                   <p class="title">{{ $t('m.Output') }}</p>
-                  <MdPreview editorId="preview-only" :modelValue="problem.outputDescription" :codeFoldable="false" :codeTheme="github" previewTheme="github"/>
+                  <MdPreview editorId="preview-only" :modelValue="problem.outputDescription" :showCodeRowNumber="false" :codeFoldable="false" codeTheme="github" previewTheme="github"/>
                     <div v-for="(sample, index) of item.samples" :key="index">
                       <div class="flex-container sample">
                         <div class="sample-input">
@@ -293,9 +356,16 @@ const onTabClick = function(){
         </Col>
         <Col :span="10">
         <Card id="submit-code" class="split-panel">
-          <CodeMirror v-model="problem.src[language]" :languageSets="problem.languages" :defaultLanguage="language"
-            :theme="theme" @resetCode="onResetToTemplate" @language-changed="onLanguageChanged"
-            :style="{height:'673px'}"></CodeMirror>
+          <CodeMirror
+            v-model="problem.src[language]"
+            :languageSets="problem.languages"
+            :defaultLanguage="language"
+            :theme="theme"
+            @resetCode="onResetToTemplate"
+            @language-changed="onLanguageChanged"
+            :disabled="examProfile.isEnded"
+            :style="{height:'673px'}"
+          ></CodeMirror>
           <Row type="flex" justify="space-between">
             <Col :span="10">
             <div class="status" v-if="statusVisible">
@@ -304,14 +374,11 @@ const onTabClick = function(){
                 {{ $t('m.' + submissionStatus.text.replace(/ /g, "_")) }}
               </Tag>
             </div>
-            <div v-if="problem.my_status === 0">
-              <Alert type="success" show-icon>{{ $t('m.You_have_solved_the_problem') }}</Alert>
-            </div>
             </Col>
 
             <Col :span="12" style="text-align: right;">
             <Button type="primary" icon="edit" :loading="submitting" @click="submitCode"
-              :disabled="problemSubmitDisabled || submitted" class="fl-right">
+              :disabled="problemSubmitDisabled || submitted || examProfile.isEnded" class="fl-right">
               <span v-if="submitting">{{ $t('m.Submitting') }}</span>
               <span v-else>{{ $t('m.Submit') }}</span>
             </Button>

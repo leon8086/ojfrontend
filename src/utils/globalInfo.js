@@ -1,4 +1,4 @@
-import api from "../api";
+import api from "@/api";
 import { ref, isRef } from 'vue';
 import { Modal } from 'view-ui-plus';
 
@@ -12,22 +12,22 @@ export function getUserLoginInfo( ){
 }
 
 export function useGlobalInfo( website ) {
-    if(!("website" in window.localStorage)){
-      api.getWebsiteInfo()
-      .then( resp => {
-        window.localStorage['website'] = JSON.stringify(resp.data);
-        website.value = JSON.parse(window.localStorage['website']);
+  if (!("website" in window.sessionStorage)) {
+    api.getWebsiteInfo()
+      .then(resp => {
+        window.sessionStorage['website'] = JSON.stringify(resp.data);
+        website.value = JSON.parse(window.sessionStorage['website']);
       })
-    }
-    else{
-      website.value = JSON.parse(window.localStorage['website']);
-      return website;
-    }
+  }
+  else {
+    website.value = JSON.parse(window.sessionStorage['website']);
+    return website;
+  }
 }
 
 export function useCheckLogin( userInfo ){
   if (!("user_info" in window.localStorage)) {
-    window.location.href = "/login.html";
+    window.location.href = "./login.html";
   }
   else {
     api.check()
@@ -38,7 +38,7 @@ export function useCheckLogin( userInfo ){
             title: "账号被禁用",
             content: "你的账号被禁用，联系管理员解决或重新登陆。",
             okText: "返回",
-            onOk: () => { window.location.href = "/login.html" }
+            onOk: () => { window.location.href = "./login.html" }
           });
         }
         userInfo.value = resp.data;
@@ -49,7 +49,7 @@ export function useCheckLogin( userInfo ){
 
 export function useCheckAdminLogin( userInfo ){
   if (!("user_info" in window.localStorage)) {
-    window.location.href = "/login.html";
+    window.location.href = "./login.html";
   }
   else {
     api.check()
@@ -59,7 +59,7 @@ export function useCheckAdminLogin( userInfo ){
             title: "账号被禁用",
             content: "你的账号被禁用，联系管理员解决或重新登陆。",
             okText: "返回",
-            onOk: () => { window.location.href = "/login.html" }
+            onOk: () => { window.location.href = "./login.html" }
           });
         }
         if ( !isAdmin(resp.data) ) {
@@ -67,7 +67,7 @@ export function useCheckAdminLogin( userInfo ){
             title: "权限不足",
             content: "你的不是管理员，请重新登陆。",
             okText: "返回",
-            onOk: () => { window.location.href = "/login.html" }
+            onOk: () => { window.location.href = "./login.html" }
           });
         }
         userInfo.value = resp.data;
@@ -76,8 +76,20 @@ export function useCheckAdminLogin( userInfo ){
   }
 }
 
+export function usePageSet( query, data ){
+  if( isRef(query)){
+    query.value.page = data.pageNumber;
+    query.value.limit = data.pageSize;
+    query.value.total = data.totalRow
+  }
+  else{
+    query.page = data.pageNumber;
+    query.limit = data.pageSize;
+    query.total = data.totalRow
+  }
+}
+
 export function isAdmin( userInfo ){
-  //console.log(userInfo);
   if( isRef(userInfo)){
     return userInfo.value.adminType <= 2;
   }
@@ -87,7 +99,6 @@ export function isAdmin( userInfo ){
 }
 
 export function isSuperAdmin( userInfo ){
-  //console.log(userInfo);
   if( isRef(userInfo)){
     return userInfo.value.adminType == 1;
   }

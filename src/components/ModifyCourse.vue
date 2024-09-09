@@ -78,6 +78,11 @@ export default{
       this.formValue.ownerId = this.adminUserList[0].id;
     }, err=>{
     })
+  },
+  methods:{
+    validate( func ){
+      this.$refs.formValue.validate( func );
+    }
   }
 }
 
@@ -91,7 +96,7 @@ export default{
         </Col>
         <Col :span="10">
         <FormItem prop="courseName" label="班级名">
-          <Input type="text" v-model="formValue.courseName" placeholder="班级名" :disabled="exists"></Input>
+          <Input type="text" v-model="formValue.courseName" placeholder="班级名"></Input>
         </FormItem>
         </Col>
         <Col :span="1">

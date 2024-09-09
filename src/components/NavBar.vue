@@ -1,28 +1,24 @@
-<script setup>
+64<script setup>
+import ResetPassword from "./ResetPassword.vue";
 import { useGlobalInfo, useCheckLogin, isAdmin } from "@/utils/globalInfo";
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
 import { Modal } from 'view-ui-plus';
-import api from '../api';
+import api from '@/api';
 defineProps( ['activeMenu'] );
 
 const userInfo = defineModel({default:{}})
 
-const modalVisible = ref(false);
+const showResetPassword = ref(false);
+
 const website = ref({
   website_name:"测试",
   allow_register:false,
   website_name_shortcut:"测试"
 });
 
-const formLogin = ref({ username:'', password: ''});
-
-const btnLoginLoading = ref(false);
-
-const loginable = ref(true);
-
 const handleRoute = function (route) {
   //console.log(route);
-  if( route == "/logout"){
+  if( route == "logout"){
     logout();
     return;
   }
@@ -32,44 +28,15 @@ const handleRoute = function (route) {
 const logout = function(){
   api.logout()
   .then(resp=>{
-    window.location.href="/login.html";
+    window.location.href="login.html";
   })
 }
 
-const handleBtnClick = function (name) {
-  if(modalVisible.value){
-    return;
+watch(()=>userInfo.value, ()=>{
+  if( userInfo.value.firstLogin ){
+    showResetPassword.value = true;
   }
-  modalVisible.value = true;
-};
-
-const handleLogin = function(e) {
-  if(formLogin.value.username == ""){
-    Modal.error({title:"用户名不能为空"});
-    return;
-  }
-  btnLoginLoading.value = true;
-  api.login({username:formLogin.value.username,password:formLogin.value.password})
-  .then(resp=>{
-    btnLoginLoading.value = false;
-    modalVisible.value = false;
-    userInfo.value = resp.data;
-    userInfo.value.login = true;
-    window.localStorage['user_info'] = JSON.stringify(userInfo.value);
-  }, err => {
-    Modal.error({title:"登录错误",content:err.data.message});
-    btnLoginLoading.value = false;
-  })
-};
-
-const validCheck = function(){
-  if(formLogin.value.username == ""){
-    loginable.value = false;
-  }
-  else{
-    loginable.value = true;
-  }
-}
+})
 
 onMounted(()=>{
   useGlobalInfo( website );
@@ -85,44 +52,59 @@ const isAdminRole = computed(()=>{
 <template>
   <div id="header">
     <Menu theme="light" mode="horizontal" @on-select="handleRoute" :active-name="activeMenu" class="oj-menu">
-      <div class="logo" @click="console.log(userInfo)"><span>{{website.website_name}}</span></div>
-      <Menu-item name="/">
-        <Icon type="md-home"></Icon>
-        {{$t('m.Home')}}
+      <div class="logo" @click="console.log(userInfo)">
+        <img src="/logo.svg" width="80px">
+        <span>{{website.website_name}}</span>
+      </div>
+      <Menu-item name="./">
+        <a href="./">
+          <Icon type="md-home"></Icon>
+          {{$t('m.Home')}}
+        </a>
       </Menu-item>
-      <Menu-item name="/problem-list.html">
-        <Icon type="ios-keypad"></Icon>
-        {{$t('m.NavProblems')}}
+      <Menu-item name="problem-list.html">
+        <a href="problem-list.html">
+          <Icon type="ios-keypad"></Icon>
+          {{$t('m.NavProblems')}}
+        </a>
       </Menu-item>
-      <Menu-item name="/exam-list">
+      <Menu-item name="exam-list.html">
+        <a href="exam-list.html">
         <Icon type="ios-list-box"></Icon>
-         考试
+          考试
+        </a>
       </Menu-item>
-      <Menu-item name="/submission-list.html">
-        <Icon type="ios-pulse"></Icon>
-        {{ $t('m.NavStatus') }}
+      <Menu-item name="homework-list.html">
+        <a href="homework-list.html">
+        <Icon type="ios-paper-outline"></Icon>
+          作业
+        </a>
       </Menu-item>
-      <Menu-item name="rank">
-        <Icon type="md-podium"></Icon>
-        {{ $t('m.Rank') }}
+      <Menu-item name="submission-list.html">
+        <a href="submission-list.html">
+          <Icon type="ios-pulse"></Icon>
+          究竟谁在卷
+        </a>
       </Menu-item>
-      <Submenu name="about">
-        <template #title>
+      <Menu-item name="rank.html">
+        <a href="rank.html">
+          <Icon type="md-podium"></Icon>
+          {{ $t('m.Rank') }}
+        </a>
+      </Menu-item>
+      <Menu-item name="about.html">
+        <a href="about.html">
           <Icon type="ios-information-circle"></Icon>
           {{$t('m.About')}}
-        </template>
-        <Menu-item name="/about">
-          {{$t('m.Judger')}}
-        </Menu-item>
-        <Menu-item name="/FAQ">
-          {{$t('m.FAQ')}}
-        </Menu-item>
-      </Submenu>
+        </a>
+      </Menu-item>
       <template v-if="isAdminRole">
-        <Menu-item name="/admin/">
+      <Menu-item name="admin/">
+        <a href="admin/">
           <Icon type="ios-redo"></Icon>
           管理端
-        </Menu-item>
+        </a>
+      </Menu-item>
       </template>
       <Dropdown class="drop-menu" @on-click="handleRoute" placement="bottom">
         <Button type="text" class="drop-menu-title">{{ userInfo.username }}
@@ -130,45 +112,28 @@ const isAdminRole = computed(()=>{
         </Button>
         <template #list>
           <Dropdown-menu>
-            <Dropdown-item name="/user-home">{{$t('m.MyHome')}}</Dropdown-item>
-            <Dropdown-item name="/status?myself=1">{{$t('m.MySubmissions')}}</Dropdown-item>
-            <Dropdown-item name="/setting/profile">{{$t('m.Settings')}}</Dropdown-item>
-            <Dropdown-item divided name="/logout">{{$t('m.Logout')}}</Dropdown-item>
+            <!-- <Dropdown-item name="user-home">
+              {{$t('m.MyHome')}}
+            </Dropdown-item>
+            <Dropdown-item name="status">
+              {{$t('m.MySubmissions')}}
+            </Dropdown-item> -->
+            <Dropdown-item name="setting.html">
+              <a href="setting.html">
+                修改密码
+              </a>
+            </Dropdown-item>
+            <Dropdown-item divided name="logout">
+              {{$t('m.Logout')}}
+            </Dropdown-item>
           </Dropdown-menu>
         </template>
       </Dropdown>
     </Menu>
-    <Modal v-model="modalVisible" :width="400" :mask-closable="false" :footer-hide="true">
-      <template #header>
-        <div class="modal-title">{{ $t('m.Welcome_to') }} {{ website.website_name_shortcut }}</div>
-      </template>
-      <Form ref="formLogin" :model="formLogin">
-        <FormItem prop="username">
-          <Input type="text" v-model="formLogin.username" :placeholder="$t('m.LoginUsername')" size="large" @input="validCheck">
-          <template #prepend>
-            <Icon type="ios-person-outline"></Icon>
-          </template>
-          </Input>
-        </FormItem>
-        <FormItem prop="password">
-          <Input type="password" required v-model="formLogin.password" :placeholder="$t('m.LoginPassword')" size="large">
-          <template #prepend>
-            <Icon type="ios-lock-outline"></Icon>
-          </template>
-          </Input>
-        </FormItem>
-        <FormItem>
-          <Button type="primary" @click="handleLogin('formLogin')" class="btn" long :loading="btnLoginLoading" :disabled="!loginable">
-            {{ $t('m.UserLogin') }}
-          </Button>
-        </FormItem>
-      </Form>
-      <div class="footer">
-        <a v-if="website.allow_register" @click.stop="handleRegister()">{{$t('m.No_Account')}}</a>
-        <a @click.stop="goResetPassword" style="float: right">{{$t('m.Forget_Password')}}</a>
-      </div>
-    </Modal>
   </div>
+  <Modal v-model="showResetPassword" :closable="false" :mask-closable="false" :footer-hide="true">
+    <ResetPassword></ResetPassword>
+  </Modal>
 </template>
 
 <style lang="less" scoped>
@@ -194,6 +159,11 @@ const isAdminRole = computed(()=>{
     line-height: 60px;
     color: var(--xmut-cs-color);
     font-weight: bolder;
+    display: flex;
+    align-items: center;
+    span{
+      margin-left:20px;
+    }
   }
 
   .drop-menu {
@@ -220,5 +190,11 @@ const isAdminRole = computed(()=>{
   &-body{
     padding-bottom: 20px;
   }
+}
+.ivu-menu-item a{
+  color: #515a6e
+}
+.ivu-dropdown-item a{
+  color: #515a6e
 }
 </style>

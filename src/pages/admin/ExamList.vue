@@ -5,10 +5,10 @@ import Pagination from '@/components/Pagination.vue'
 import XMUTFooter from '@/components/XMUTFooter.vue'
 
 import { ref, reactive, onMounted, resolveComponent } from 'vue';
-import { DIFFICULTY_COLOR } from '../../utils/constants';
+import { DIFFICULTY_COLOR } from '@/utils/constants';
 
 import i18n from '@/i18n';
-import moment from 'moment';
+import dayjs from 'dayjs';
 import api from '@/api';
 import utils from '@/utils';
 const examList = ref([]);
@@ -17,13 +17,19 @@ const loadings = reactive({table:true, tag:false});
 const examTableColumns = reactive([
   {
     title: '#',
-    width: 120,
+    width: 100,
     key: "id",
   },
   {
     title: "考试名称",
-    width: 240,
+    width: 200,
     slot: "title",
+  },
+  {
+    title: "所属课程",
+    width: 200,
+    slot: "course",
+    align:"center"
   },
   {
     title: "题目配置",
@@ -90,7 +96,11 @@ const countProblems = function(item){
 }
 
 const newExam = function(){
-  window.open("/admin/exam.html", "_blank");
+  window.open("./exam.html", "_blank");
+}
+
+const editExam = function(id){
+  window.open('./exam.html?id='+id.toString(), '_blank');
 }
 
 onMounted(() => {
@@ -100,7 +110,7 @@ onMounted(() => {
 
 <template>
   <Layout>
-    <NavBarAdmin :activeMenu="'/admin/exam-list.html'"></NavBarAdmin>
+    <NavBarAdmin :activeMenu="'./exam-list.html'"></NavBarAdmin>
     <div class="content-app">
       <Content :style="{padding:'0 50px'}">
         <TitledPanel>
@@ -129,7 +139,8 @@ onMounted(() => {
             :loading="loadings.table" :no-data-text="`<tr>没有考试</tr>`" :no-filtered-data-text="`<tr>没有考试</tr>`"
             disabled-hover>
             <template #title="{row}">
-              <a :href="'/admin/exam?id='+row.id.toString()" target="_blank">{{row.title}}</a>
+              <a :href="'./exam.html?id='+row.id.toString()" target="_blank">{{row.title}}</a>
+              <Button icon="ios-create" @click="editExam(row.id)"></Button>
             </template>
             <template #problem="{row}">
               <div style="text-align: left">
@@ -139,7 +150,7 @@ onMounted(() => {
                     <template #content>
                       <Row>
                         <Col :span="12" v-for="item, key in row.problemConfig">
-                          <Card :title="'&nbsp;'+(key+1).toString()+'. 选 '+item.quantity.toString()+' 题'" icon="ios-options" :padding="0" style="margin-right:5px;">
+                          <Card :title="'&nbsp;'+(key+1).toString()+'. 选 '+item.quantity.toString()+' 题'" icon="ios-options" :padding="0" style="margin-right:5px;" class="problem-config">
                             <CellGroup>
                               <Cell v-for="p,k in item.problems">
                                 <a :href='"/problem?id="+p.id' target="_blank">{{ p.title }}</a>
@@ -156,11 +167,14 @@ onMounted(() => {
                 </Collapse>
               </div>
             </template>
+            <template #course="{row}">
+              <a :href="'./course-list.html'" target="_blank">{{row.course}}</a>
+            </template>
             <template #startTime="{row}">
-              {{ moment(row.startTime).format("YYYY年MM月DD日") }}
+              {{ dayjs(row.startTime).format("YYYY年MM月DD日 HH:mm:ss") }}
             </template>
             <template #endTime="{row}">
-              {{ moment(row.endTime).format("YYYY年MM月DD日") }}
+              {{ dayjs(row.endTime).format("YYYY年MM月DD日 HH:mm:ss") }}
             </template>
             <template #duration="{row}">
               {{ utils.duration(row.startTime, row.endTime).message }}
@@ -197,5 +211,8 @@ onMounted(() => {
   .operation .ivu-btn{
     margin-right: 1px;
     margin-left: 1px;
+  }
+  .problem-config{
+    margin-top: 5px;
   }
 </style>

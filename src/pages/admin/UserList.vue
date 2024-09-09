@@ -3,12 +3,10 @@
 import NavBarAdmin from '@/components/NavBarAdmin.vue';
 import XMUTFooter from '@/components/XMUTFooter.vue';
 import TitledPanel from "@/components/TitledPanel.vue";
-import Pagination from "@/components/Pagination.vue";
-import ModifyUser from '@/components/ModifyUser.vue';
 import ImportUsers from '@/components/ImportUsers.vue';
 import ImportResult from '@/components/ImportResult.vue';
 import SlimRemotePage from '@/components/SlimRemotePage.vue';
-import moment from 'moment';
+import dayjs from 'dayjs';
 import { USER_TYPE } from '@/utils/constants';
 
 import { ref, onMounted } from 'vue';
@@ -16,8 +14,8 @@ import { ref, onMounted } from 'vue';
 import i18n from '@/i18n';
 import api from '@/api';
 import utils from '@/utils';
-import { Cascader } from 'view-ui-plus';
-import { USER_TYPE_INFO } from '../../utils/constants';
+import { Cascader, Message, Modal } from 'view-ui-plus';
+import { USER_TYPE_INFO } from '@/utils/constants';
 
 const query = ref({page:1,limit:10,total:0,keyword:""});
 const userInfo = ref({login:false});
@@ -73,6 +71,7 @@ const userTableColumn = ref([
 const userList = ref([]);
 
 const filterByKeyword = function(){
+  pageRef.value.refresh();
 };
 
 const onReset = function(){
@@ -82,60 +81,88 @@ const deleteUser = function(index){
 }
 
 const modifyUser = function(index){
-  curUser.value = {};
-  curUser.value = {...userList.value[index]};
-  exists.value = true;
+  formUser.value = {};
+  formUser.value = {...userList.value[index]};
   showModify.value = true;
 }
 
 const modifyFinished = function(){
-  if( curUser.value.id == null ){ // add new user
-  }
-  else{  // update user
-    api.adminUpdateUser( curUser.value )
-    .then(resp =>{
-      console.log(resp.data);
-      query.value.total = 0;
-      showModify.value = false;
-    }, err=>{
+  formValidator.validate((valid)=>{
+    if( !valid ){
+      Message.error("请检查必填项");
+      return;
+    }
+    if( formUser.value.id == null ){ // add new user
+      console.log(formUser.value)
+      api.adminNewUser( formUser.value )
+      .then(resp=>{
+        console.log(resp);
+      })
+    }
+    else{  // update user
+      api.adminUpdateUser( formUser.value )
+      .then(resp =>{
+        console.log(resp.data);
+        query.value.total = 0;
+        showModify.value = false;
+        pageRef.value.refresh();
+      }, err=>{
+      })
+    }
     })
-  }
 }
 
-const resetPassword = function(index){
+const resetPassword = function(id){
+  api.adminResetUserPSW(id)
+  .then(resp=>{
+    Modal.info({
+      title:"操作",
+      content:resp.data,
+    });
+  })
 }
 
-const exists = ref(false);
 const showModify = ref(false);
 
-const curUser = ref({
+const formUser = ref({
   id: null,
   username:"",
   password:"",
   email:"",
   realName:"",
-  grade:"",
+  grade:null,
   adminType:"Regular User",
   isDisabled: false,
 });
 
+const ruleUser = ref({
+      username:[
+          { required: true, message:'请填入用户名', trigger:"blur"},
+        ],
+      grade: [
+          { required: true, message:'请选择一个年级', trigger:"blur"},
+      ]
+    });
+
+const formValidator = ref(null);
+
+
 const newUser = function(){
-  curUser.value = {
+  formUser.value = {
     id: null,
     username:"",
-    password:"",
     email:"",
     realName:"",
     grade:"",
-    adminType:"Regular User",
+    adminType:9,
     isDisabled: false,
   }
-  exists.value = false;
   showModify.value = true;
 }
 
 const uploadResult = ref({insert:0,failed:[]});
 const showResult = ref(false);
+
 const doUpload = function( valid ){
   valid.forEach( item=>{
     item.adminType = USER_TYPE.REGULAR_USER; // 默认为普通用户
@@ -154,31 +181,31 @@ const doUpload = function( valid ){
   })
 }
 
-const onFinished = function(){
-  query.value.total = 0;
-  //getUserList();
+const gradeList = ref([])
+
+const getGradeList = function(){
+  api.getGrade()
+  .then(resp =>{
+    gradeList.value = resp.data;
+  })
 }
 
+const pageRef = ref(null)
 
-//const getUserList = function(){
-//  api.getUserList( query.value )
-//  .then( resp => {
-//    //console.log(resp);
-//    query.value.page = resp.data.page;
-//    query.value.limit = resp.data.pageSize;
-//    query.value.total = resp.data.totalRow;
-//    userList.value = resp.data.records;
-//  })
-//}
+const onFinished = function(){
+  query.value.total = 0;
+  pageRef.value.refresh();
+}
 
 onMounted(() => {
-  //getUserList();
+  getGradeList();
 })
+
 </script>
 
 <template>
   <Layout>
-    <NavBarAdmin :activeMenu="'/admin/user-list.html'" v-model="userInfo"></NavBarAdmin>
+    <NavBarAdmin :activeMenu="'./user-list.html'" v-model="userInfo"></NavBarAdmin>
     <div class="content-app">
       <Content :style="{padding:'0 50px'}">
         <TitledPanel>
@@ -190,7 +217,7 @@ onMounted(() => {
               <ul class="filter">
                 <li>
                   <Input v-model="query.keyword" @on-enter="filterByKeyword" @on-click="filterByKeyword"
-                    placeholder="keyword" icon="ios-search-strong" />
+                    @on-change="filterByKeyword" placeholder="keyword" icon="ios-search-strong" />
                 </li>
                 <li>
                   <Button type="primary" @click="onReset">
@@ -202,27 +229,20 @@ onMounted(() => {
             </div>
           </template>
 
-          <!-- <Table style="width: 100%; font-size: 16px;" :columns="userTableColumn" :data="userList" :loading="loadings"
-            :no-data-text="`<tr>没有用户</tr>`" :no-filtered-data-text="`<tr>没有用户</tr>`" disabled-hover> -->
-          <SlimRemotePage style="width: 100%; font-size: 16px;" :columns="userTableColumn" :get-function="api.getUserList" v-model="query" :loading="loadings"
-                    @update="(e)=>userList = e"
-                    disabled-hover>
+          <SlimRemotePage style="width: 100%; font-size: 16px;" :columns="userTableColumn"
+            :get-function="api.getUserList" v-model="query" :loading="loadings" @update="(e)=>userList = e"
+            ref="pageRef" disabled-hover>
             <template #username="{row}">
               <a :href="'/admin/user?id='+row.id.toString()" target="_blank">{{row.username}}</a>
             </template>
             <template #grade="{row}">
-              <template v-if="row.grade!=null">
-                {{row.grade}}
-              </template>
-              <template v-else>
-                -
-              </template>
+              {{ row.gradeName }}
             </template>
             <template #createTime="{row}">
-              {{ moment(row.createTime).format("YYYY-MM-DD HH:mm:ss") }}
+              {{ dayjs(row.createTime).format("YYYY-MM-DD HH:mm:ss") }}
             </template>
             <template #lastLogin="{row}">
-              {{ moment(row.lastLogin).format("YYYY-MM-DD HH:mm:ss") }}
+              {{ dayjs(row.lastLogin).format("YYYY-MM-DD HH:mm:ss") }}
             </template>
             <template #nickname="{row}">
               {{ row.realName }}
@@ -241,15 +261,12 @@ onMounted(() => {
                   </Button>
                 </Tooltip>
                 <Tooltip content="重置用户密码" placement="top-start">
-                  <Button icon="ios-refresh" @click="resetPassword(index)">
+                  <Button icon="ios-refresh" @click="resetPassword(row.id)">
                   </Button>
                 </Tooltip>
               </div>
             </template>
           </SlimRemotePage>
-          <!-- </Table> -->
-          <!-- <Pagination @on-page-size-change="getUserList" :total="query.total" size="small"
-            v-model:page-size="query.limit" @on-change="getUserList" v-model:current="query.page"></Pagination> -->
         </TitledPanel>
         <ImportUsers @upload="doUpload"></ImportUsers>
       </Content>
@@ -258,9 +275,73 @@ onMounted(() => {
       <template #header>
         <h2>用户信息编辑</h2>
       </template>
-      <ModifyUser v-model="curUser" :exists="exists"></ModifyUser>
+      <div>
+        <Form ref="formValidator" :model="formUser" :rules="ruleUser" label-position="left" :label-width="80">
+          <Row>
+            <Col :span="11">
+            <FormItem prop="id" label="用户id">
+              <Input type="text" v-model="formUser.id" placeholder="新用户" disabled></Input>
+            </FormItem>
+            </Col>
+            <Col :span="2">
+            </Col>
+            <Col :span="11">
+            <FormItem prop="username" label="用户名">
+              <Input type="text" v-model="formUser.username" placeholder="用户名" :disabled="formUser.id != null"></Input>
+            </FormItem>
+            </Col>
+            <Col :span="11">
+            <FormItem prop="email" label="邮箱">
+              <Input type="text" v-model="formUser.email" placeholder="邮箱"></Input>
+            </FormItem>
+            </Col>
+            <Col :span="2">
+            </Col>
+            <Col :span="11">
+            <FormItem prop="realName" label="真名">
+              <Input type="text" v-model="formUser.realName" placeholder="真名"></Input>
+            </FormItem>
+            </Col>
+            <Col :span="11">
+            <FormItem prop="grade" label="年级">
+              <Select v-model="formUser.grade">
+                <Option v-for="item, key in gradeList" :value="item.id"> {{  item.name }}</Option>
+              </Select>
+              <!-- <Input type="text" v-model="formUser.grade" placeholder="年级"></Input> -->
+            </FormItem>
+            </Col>
+            <Col :span="2">
+            </Col>
+            <Col :span="11">
+            <FormItem prop="adminType" label="用户类型">
+              <Select v-model="formUser.adminType" :disabled="formUser.id == 1">
+                <Option v-for="item, key in USER_TYPE_INFO" :value="item.id">
+                  <Tag :color="item.color">{{ item.name }}</Tag>
+                </Option>
+              </Select>
+            </FormItem>
+            </Col>
+            <Col :span="11">
+            <FormItem prop="isDisable" label="已禁用">
+              <Switch v-model="formUser.isDisabled">
+                <template #open>是</template>
+                <template #close>否</template>
+              </Switch>
+            </FormItem>
+            </Col>
+            <Col :span="2">
+            </Col>
+            <Col :span="11">
+            <div v-if="formUser.id == null">
+              新建用户的密码为<span style="color:red"> 123456 </span>
+            </div>
+            </Col>
+          </Row>
+        </Form>
+      </div>
     </Modal>
-    <ImportResult v-model="showResult" :insert="uploadResult.insert" :failed="uploadResult.failed" @finished="onFinished"></ImportResult>
+    <ImportResult v-model="showResult" :insert="uploadResult.insert" :failed="uploadResult.failed"
+      @finished="onFinished"></ImportResult>
     <XMUTFooter></XMUTFooter>
   </Layout>
 </template>

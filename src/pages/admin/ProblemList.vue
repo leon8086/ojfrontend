@@ -6,6 +6,7 @@ import TitledPanel from '@/components/TitledPanel.vue';
 import SlimRemotePage from "@/components/SlimRemotePage.vue";
 import ImportResult from "@/components/ImportResult.vue";
 import ProblemSelector from "@/components/ProblemSelector.vue";
+import ProbTag from "@/components/ProbTag.vue";
 import { DIFFICULTY_COLOR } from '@/utils/constants';
 import { MdPreview } from 'md-editor-v3';
 import 'md-editor-v3/lib/preview.css';
@@ -13,6 +14,7 @@ import i18n from '@/i18n';
 import api from '@/api';
 import utils from '@/utils';
 import { ref, reactive, onMounted, resolveComponent } from 'vue';
+import { TagSelect } from 'view-ui-plus';
 
 const query = reactive({keyword:'', page:1, limit:10, total:0 });
 
@@ -41,22 +43,31 @@ const problemTableColumns = ref([
   },
   {
     title: "难度",
-    width: 120,
+    width: 100,
     slot: "level",
   },
   {
     title: "类型",
     slot: 'templated',
+    width: 100,
     align: 'center',
   },
   {
     title: "发布",
     slot: 'enable',
+    width: 80,
   },
   {
     title: "限制",
     slot: 'limitation',
     align:"center",
+    width: 200,
+  },
+  {
+    title: "分类",
+    slot: 'tags',
+    align:'center',
+    width: 280,
   },
   {
     title: "AC",
@@ -82,7 +93,7 @@ const onReset = function(){
 const userInfo = ref({login:false});
 
 const newProblem = function(){
-  window.open("/admin/problem.html","_blank");
+  window.open("./problem.html","_blank");
 }
 
 const curProblem = ref({ title:"", description:"" });
@@ -92,17 +103,62 @@ const showDesc = function( index ){
   isShowDesc.value = true;
 }
 
+
+const selectionItems = ref([])
 const visibleChanged = function(index, visible){
   let id = problemList.value[index].id;
-  api.adminSetVisibility( id, visible )
+  api.adminSetVisibility( [id], visible )
   .then(resp=>{
-    problemList.value[index].visible = resp.data.visible;
-  })
+    pageRef.value.refresh();
+  });
 }
+const onSelectionChange = function( selection ){
+  selectionItems.value = selection;
+}
+const switchOn = function(){
+  let params = []
+  selectionItems.value.forEach( item=>{
+    params.push(item.id);
+  });
+  api.adminSetVisibility(params, true)
+  .then(resp=>{
+    pageRef.value.refresh();
+    selectionItems.value = [];
+  });
+}
+
+const switchOff = function(){
+  let params = []
+  selectionItems.value.forEach( item=>{
+    params.push(item.id);
+  });
+  api.adminSetVisibility(params, false)
+  .then(resp=>{
+    pageRef.value.refresh();
+    selectionItems.value = [];
+  });
+}
+
+const switchOnAll = function(){
+  api.adminSetAllVisibility(true)
+  .then(resp=>{
+    pageRef.value.refresh();
+    selectionItems.value = [];
+  });
+}
+
+const switchOffAll = function(){
+  api.adminSetAllVisibility(false)
+  .then(resp=>{
+    pageRef.value.refresh();
+    selectionItems.value = [];
+  });
+}
+
 
 const modifyProblem = function(index){
   let id = problemList.value[index].id;
-  window.location.href="/admin/problem.html?id="+id;
+  window.location.href="./problem.html?id="+id;
 }
 
 const deleteProblem = function(index){
@@ -201,12 +257,17 @@ onMounted(() => {
 
 <template>
   <Layout>
-    <NavBarAdmin :activeMenu="'/admin/problem-list.html'" v-model="userInfo"></NavBarAdmin>
+    <NavBarAdmin :activeMenu="'./problem-list.html'" v-model="userInfo"></NavBarAdmin>
     <div class="content-app">
       <Content :style="{padding:'0 50px'}">
         <TitledPanel>
           <template #title>
-            题目管理 <Button icon="md-add" type="primary" @click="newProblem">添加题目</Button>
+            题目管理
+            <Button icon="md-add" type="primary" @click="newProblem">添加题目</Button>
+            <Button icon="md-checkmark" type="primary" @click="switchOn" :disabled="selectionItems.length==0">发布选中</Button>
+            <Button icon="md-checkmark-circle-outline" type="primary" @click="switchOnAll">发布全部</Button>
+            <Button icon="md-close" type="primary" @click="switchOff" :disabled="selectionItems.length==0">取消选中</Button>
+            <Button icon="md-close-circle" type="primary" @click="switchOffAll">取消全部</Button>
           </template>
           <template #extra>
             <ul class="filter">
@@ -225,6 +286,7 @@ onMounted(() => {
           <SlimRemotePage style="width: 100%; font-size: 16px;"
                     :columns="problemTableColumns" :get-function="api.adminGetProblemList" v-model="query"
                     @update="(e) =>problemList = e" ref="pageRef"
+                    @on-selection-change="onSelectionChange"
                     disabled-hover>
             <template #display="{row}">
               {{ row.displayId }}
@@ -235,7 +297,7 @@ onMounted(() => {
               </div>
             </template>
             <template #level="{row}">
-              <Tag :color="DIFFICULTY_COLOR[row.difficulty]" >{{ row.difficulty }}</Tag>
+              <Tag :color="DIFFICULTY_COLOR[row.difficulty]" >{{ $i18n.t("m."+row.difficulty) }}</Tag>
             </template>
             <template #templated="{row}">
               <Tag :color="Object.keys(row.template) != 0 ? 'success':'default'">{{ Object.keys(row.template) != 0 ? '模板':'普通' }}</Tag>
@@ -253,6 +315,12 @@ onMounted(() => {
             <template #limitation="{row}">
               <Tag>{{ row.timeLimit }} ms</Tag>
               <Tag>{{ row.memoryLimit }}M</Tag>
+            </template>
+            <template #tags = "{row}">
+              <div style="text-align: left">
+                <ProbTag>{{row.majorTag}}</ProbTag>
+                <ProbTag type="sub">{{row.subTag}}</ProbTag>
+              </div>
             </template>
             <template #ac_rate="{row}">
               {{ row.acceptedNumber }}/{{ row.submissionNumber }}
