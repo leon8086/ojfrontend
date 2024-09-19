@@ -2,7 +2,7 @@
 import NavBar from '@/components/NavBar.vue';
 import XMUTFooter from "@/components/XMUTFooter.vue";
 import UserStatistic from '@/components/UserStatistic.vue';
-import UserSubmission from '@/components/UserSubmission.vue';
+import UserProblemStatus from '@/components/UserProblemStatus.vue';
 import api from '@/api';
 import utils from "@/utils";
 import { useCheckLogin, isAdmin  } from '@/utils/globalInfo';
@@ -95,7 +95,7 @@ const showDetail = ref(false);
                   关闭
                 </template>
               </Switch>
-              <UserSubmission ref="submission" :visible="showDetail"></UserSubmission>
+              <UserProblemStatus ref="submission" :visible="showDetail" />
             </div>
           </Card>
           </Col>

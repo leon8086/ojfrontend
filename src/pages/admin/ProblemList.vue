@@ -83,6 +83,7 @@ const problemTableColumns = ref([
 ]);
 
 const filterByKeyword = function(){
+  pageRef.value.refresh();
 }
 
 const onReset = function(){
@@ -272,7 +273,7 @@ onMounted(() => {
           <template #extra>
             <ul class="filter">
               <li>
-                <Input v-model="query.keyword" @on-enter="filterByKeyword" @on-click="filterByKeyword"
+                <Input v-model="query.keyword" @on-change="filterByKeyword" @on-enter="filterByKeyword" @on-click="filterByKeyword"
                   placeholder="关键字" icon="ios-search-strong" />
               </li>
               <li>

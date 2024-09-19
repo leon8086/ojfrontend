@@ -3,6 +3,7 @@ import XMUTFooter from "@/components/XMUTFooter.vue";
 import TitledPanel from "@/components/TitledPanel.vue";
 import ProblemSelector from "@/components/ProblemSelector.vue";
 import NavBarAdmin from "@/components/NavBarAdmin.vue";
+import ProbTag from "@/components/ProbTag.vue";
 import { DIFFICULTY_COLOR } from "@/utils/constants";
 import { isAdmin, isSuperAdmin } from "@/utils/globalInfo";
 import api from "@/api";
@@ -15,6 +16,7 @@ export default{
     TitledPanel,
     ProblemSelector,
     NavBarAdmin,
+    ProbTag,
   },
   data() {
     return{
@@ -292,7 +294,7 @@ export default{
               <Row>
                 <Col :span="8" v-for="item, key in row.problems">
                   <div class="problem-info">
-                    <a :href="'/problem?id='+item.id" target="_blank">
+                    <a :href="'../problem.html?id='+item.id" target="_blank">
                       {{ item.title }}
                     <Tag :color="DIFFICULTY_COLOR[item.difficulty]">
                       {{ $t("m."+item.difficulty) }}
@@ -325,7 +327,7 @@ export default{
       </div>
     </Content>
   </div>
-  <Modal v-model="selectVisible" width="700" style="top:20px">
+  <Modal v-model="selectVisible" width="1200" style="top:20px">
     <template #header>
       <div style="text-align: center;">
         <h2>选择抽题范围</h2>

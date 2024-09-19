@@ -161,7 +161,7 @@ const handleQuit = function () {
 const quitExam = function(){
   api.quitExam(examId.value)
   .then(resp=>{
-    window.location.href="./exam-rank?id="+examId.value;
+    window.location.href="./exam-rank.html?id="+examId.value;
   }, err=>{
   });
 }
@@ -227,7 +227,7 @@ onMounted(()=>{
   });
 
   window.addEventListener("beforeunload", e=>{
-    //e.preventDefault();
+    // e.preventDefault();
   });
   setInterval( ()=>{
     timeRemains.value = utils.duration(dayjs(), examInfo.value.endTime);

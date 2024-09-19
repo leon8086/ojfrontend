@@ -46,23 +46,26 @@ onMounted(()=>{
     examInfo.value.count = count;
     rankTableColumns.value.push({
      title: '#',
-     width: 100,
+     width: 60,
      align: "center",
      slot: "rank",
     },{
      title: "用户",
-     width: 200,
      align: "center",
      slot: "user",
     });
     for( let i=0; i<count; ++i){
       rankTableColumns.value.push({
         title: "第 "+(i+1).toString()+" 题",
-        width: 300,
-        align: 'center',
+        align: 'left',
+        tooltip:true,
         render: (h, params)=>{
           let p = params.row.problemConfig[i];
           let score = params.row.info[p.id];
+          let submit_count = params.row.info["count_"+p.id.toString()];
+          if(submit_count == null ){
+            submit_count = 0;
+          }
           let color="error";
           if( score == 100 ){
             color = "success";
@@ -71,22 +74,26 @@ onMounted(()=>{
             color = "warning";
           }
           if( isAdmin(userInfo) ){
-            return h("div", {style:"display:flex; justify-content:space-around; align-items:center"},
-                      [
-                        h("div", [
-                          h(resolveComponent("Tag"),{color:DIFFICULTY_COLOR[p.difficulty]},()=>{return i18n.global.t("m."+p.difficulty);}),
-                          score>0?h("a",{ href:"/exam-submission?exam="+id+"&user="+params.row.user.id+"&problem="+p.id , target:"_blank"},p.title):h("span", p.title),
-                        ]),
-                        h(resolveComponent("Tag"),{color:color},()=>{return score.toString();})
-                      ]);
+             return h("div",
+                       [
+                         h("div", [
+                           h(resolveComponent("Tag"),{color:color},()=>{return score.toString();}),
+                           h(resolveComponent("Tag"),{color:DIFFICULTY_COLOR[p.difficulty]},()=>{return i18n.global.t("m."+p.difficulty);}),
+                           h(resolveComponent("Tag"),{color:"default",style:"font-size:14px"},()=>" 提交："+submit_count.toString()+"次"),
+                         ]),
+                         h("div", [
+                           h( "a",
+                             { href:"./exam-userinfo.html?exam="+id+"&user="+params.row.user.id, target:"_blank"}, p.title),
+                         ]),
+                       ]);
           }
           else{
-            return h("div", {style:"display:flex; justify-content:space-around; align-items:center"},
+            return h("div",
                       [
-                        h("div", [
-                          h(resolveComponent("Tag"),{color:DIFFICULTY_COLOR[p.difficulty]},()=>{return i18n.global.t("m."+p.difficulty);}),
-                        ]),
-                        h(resolveComponent("Tag"),{color:color},()=>{return score.toString();})
+                         h("div", [
+                           h(resolveComponent("Tag"),{color:color},()=>{return score.toString();}),
+                           h(resolveComponent("Tag"),{color:DIFFICULTY_COLOR[p.difficulty]},()=>{return i18n.global.t("m."+p.difficulty);}),
+                         ]),
                       ]);
           }
         }// render
@@ -178,7 +185,21 @@ const backToHome = function(){
             {{ index+1 }}
           </template>
           <template #user="{row, index}">
-            {{ row.user.username }}
+            <template v-if="isAdmin(userInfo)">
+              <a :href="'exam-userinfo.html?id='+examInfo.id+'&user='+row.user.id" target="_blank">
+                {{ row.user.username }}
+              </a>
+            </template>
+            <template v-else>
+              <template v-if= "userInfo.id == row.user.id" >
+              <a :href="'exam-userinfo.html?id='+examInfo.id" target="_blank">
+                {{ row.user.username }}
+              </a>
+              </template>
+              <template v-else>
+                {{ row.user.username }}
+              </template>
+            </template>
           </template>
           <template #score="{row, index}">
             {{ row.score }}

@@ -24,7 +24,7 @@ onMounted(() => {
 
 <template>
   <Layout>
-    <NavBarAdmin :activeMenu="'/admin/homework.html'" v-model="userInfo"></NavBarAdmin>
+    <NavBarAdmin :activeMenu="'./admin/homework.html'" v-model="userInfo"></NavBarAdmin>
     <div class="content-app">
       <Content :style="{padding:'0 50px'}">
         <TitledPanel>

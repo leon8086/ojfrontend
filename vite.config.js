@@ -28,7 +28,6 @@ export default defineConfig({
         login: path.resolve(__dirname, "login.html"),
         examList: path.resolve(__dirname, "exam-list.html"),
         examRank: path.resolve(__dirname, "exam-rank.html"),
-        examSubmission: path.resolve(__dirname, "exam-submission.html"),
         exam: path.resolve(__dirname, "exam.html"),
         problemList: path.resolve(__dirname, "problem-list.html"),
         problem: path.resolve(__dirname, "problem.html"),
@@ -40,6 +39,7 @@ export default defineConfig({
         homework: path.resolve(__dirname, "homework.html"),
         homeworkList: path.resolve(__dirname, "homework-list.html"),
         userInfo: path.resolve(__dirname, "user-info.html"),
+        examUserInfo: path.resolve(__dirname, "exam-userinfo.html"),
 
         adminCourseList: path.resolve(__dirname, "admin/course-list.html"),
         adminExamList: path.resolve(__dirname, "admin/exam-list.html"),

@@ -56,9 +56,9 @@ defineExpose({loadData});
     <Row :gutter="4">
       <Col :span="6" style="text-align: center;" v-for="item, key in chartDesc">
         <div>
-          <Circle :percent="100*acStatistic[item.key]/totalStatistic[item.key]" :size="150" :stroke-width="12" :trail-width="10">
+          <Circle :percent="100*acStatistic[item.key]/totalStatistic[item.key]" :size="180" :stroke-width="12" :trail-width="10">
             <span class="demo-circle-inner" style="font-size:24px">
-              <h3>
+              <h3 style="margin-left: 0px">
                 <Tag :color="item.color" size="large" style="font-size:80%">
                   {{acStatistic[item.key]}}/{{ totalStatistic[item.key] }}
                 </Tag>
@@ -72,26 +72,6 @@ defineExpose({loadData});
         </div>
       </Col>
     </Row>
-    <!-- <v-chart :option="option" /> -->
-    <!-- <Row :gutter="4">
-      <Col :span="4" v-for="item, key in problems">
-        <template v-if="item.status == null">
-          <Tag>
-            <Icon type="ios-remove" />
-          </Tag>
-        </template>
-        <template v-else>
-          <Tag :color="JUDGE_STATUS[item.status].color">
-            <Icon :type="statusIcon[item.status]" />
-          </Tag>
-        </template>
-        <a :href="'./problem.html?id='+item.id" target="_blank">
-          <Tag :color="DIFFICULTY_COLOR[item.difficulty]" style="min-width:78px">
-            {{ item.displayId }}
-          </Tag>
-        </a>
-      </Col>
-    </Row> -->
   </div>
 </template>
 

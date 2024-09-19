@@ -35,42 +35,10 @@ const problem = ref({
           template: {},
           languages: [],
           tags: [],
+          src:{},
           difficulty: "Low",
           submissionList: [],
         });
-
-
-const tableColumns = ref([
-  {
-    title:"id",
-    slot: 'id',
-    width: 60,
-    align:"center",
-  },
-  {
-    title:"状态",
-    slot: 'status',
-    align:"center",
-    width: 120,
-  },
-  {
-    title:"时间",
-    slot:"time",
-    align:"center",
-    width: 100,
-  },
-  {
-    title:"内存",
-    slot:"memory",
-    align:"center",
-    width: 100,
-  },
-  {
-    title:"详情",
-    slot:"info",
-    align:"center",
-  },
-]);
 
 
 let refreshTimer = 0;
@@ -80,11 +48,22 @@ const copySample = function( t ){
 }
 
 const onResetToTemplate = function(){
-  console.log("reset template");
+  problem.value.src[language.value] = problem.value.template[language.value];
 }
 
 const onLanguageChanged = function(new_lang){
   language.value = new_lang;
+}
+
+const loadProblem = function(){
+  api.getProblemDetail(problemID.value)
+  .then(resp => {
+    problem.value = resp.data
+    problem.value.src = {};
+    for( let key in problem.value.template ){
+      problem.value.src[key] = problem.value.template[key];
+    }
+  });
 }
 
 const checkSubmissionStatus = function(){
@@ -105,11 +84,10 @@ const checkSubmissionStatus = function(){
       }
       submitting.value = false;
       submitted.value = false;
-      let tmp_code = code.value;
+      // let tmp_code = code.value;
       api.getProblemDetail(problemID.value)
       .then(resp => {
-        problem.value = resp.data
-        code.value = tmp_code;
+        problem.value.submissionList = resp.data.submissionList;
       });
     }, err =>{
       submitting.value = false;
@@ -119,7 +97,8 @@ const checkSubmissionStatus = function(){
 }
 
 const submitCode = function(){
-  if(code.value==null || code.value.trim() === ""){
+  let code = problem.value.src[language.value];
+  if(code==null || code.trim() === ""){
     Modal.error({
       title:"错误",
       content:"不能提交空代码！",
@@ -132,7 +111,7 @@ const submitCode = function(){
   let data = {
     problemId:problemID.value,
     language: language.value,
-    code: code.value,
+    code,
   }
   api.submitCode(data)
   .then(resp => {
@@ -147,11 +126,12 @@ const submitCode = function(){
 
 onMounted(() => {
   problemID.value = utils.getUrlKey("id");
-  api.getProblemDetail(problemID.value)
-  .then(resp => {
-    problem.value = resp.data
-    code.value = problem.value.template[language.value];
-  });
+  loadProblem();
+  // api.getProblemDetail(problemID.value)
+  // .then(resp => {
+  //   problem.value = resp.data
+  //   code.value = problem.value.template[language.value];
+  // });
 })
 
 const submissionStatus = computed(()=> {
@@ -224,7 +204,7 @@ const submissionStatus = computed(()=> {
                   <div v-if="problem.hint">
                     <p class="title">{{ $t('m.Hint') }}</p>
                     <Card dis-hover>
-                      <div class="content" v-html=problem.hint></div>
+                      <MdPreview editorId="preview-only" :modelValue="problem.hint" :showCodeRowNumber="false" :codeFoldable="false" codeTheme="github" previewTheme="github"/>
                     </Card>
                   </div>
                 </div>
@@ -232,13 +212,13 @@ const submissionStatus = computed(()=> {
             </template>
             <template #right>
               <div id="submit-code" class="split-panel">
-                <CodeMirror v-model="code" :languageSets="problem.languages" :defaultLanguage="language" :theme="theme"
-                  @resetCode="onResetToTemplate" @language-changed="onLanguageChanged"></CodeMirror>
+                <CodeMirror v-model="problem.src[language]" :languageSets="problem.languages" :defaultLanguage="language" :theme="theme"
+                  :resetCode="onResetToTemplate" @language-changed="onLanguageChanged"></CodeMirror>
                 <Row type="flex" justify="space-between">
                   <Col :span="10">
                   <div class="status" v-if="statusVisible">
                     <span>{{ $t('m.Status') }}</span>
-                    <a :href="'/submission.html?id='+submissionId" target="_blank">
+                    <a :href="'submission.html?id='+submissionId" target="_blank">
                       <Tag :color="submissionStatus.color" size="medium" @click.native="console.log('');">
                         {{ $t('m.' + submissionStatus.text.replace(/ /g, "_")) }}
                       </Tag>

@@ -233,7 +233,7 @@ onMounted(() => {
             :get-function="api.getUserList" v-model="query" :loading="loadings" @update="(e)=>userList = e"
             ref="pageRef" disabled-hover>
             <template #username="{row}">
-              <a :href="'/admin/user?id='+row.id.toString()" target="_blank">{{row.username}}</a>
+              <a :href="'./user?id='+row.id.toString()" target="_blank">{{row.username}}</a>
             </template>
             <template #grade="{row}">
               {{ row.gradeName }}

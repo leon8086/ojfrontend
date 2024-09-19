@@ -255,6 +255,12 @@ export default {
     getSubmissionList( query ){
         return get('submission/list',query);
     },
+    getMySubmissionAll(){
+        return get('submission/all');
+    },
+    adminGetUserAllSubmissions( id ){
+        return get('admin/user/user-submissions',{id});
+    },
 
     // user
     login( data ){
@@ -295,6 +301,9 @@ export default {
     adminRestartExam( id, endTime ){
         return post("admin/exam/restart", {id,endTime});
     },
+    adminGetUserExamProfile( examId, userId ){
+        return get("admin/exam/user-profile", {examId, userId});
+    },
 
     // exam
     getExamListValid(){
@@ -315,8 +324,8 @@ export default {
     getExamSubmissionResult(id){
         return get('exam/submit_result', {id});
     },
-    getExamSubmission( examId, problemId){
-        return get('exam/submission_list', {examId, problemId});
+    getExamSubmission( examId){
+        return get('exam/submission_list', {examId});
     },
     getExamProfile( examId ){
         return get("exam/profile", { examId });
@@ -358,6 +367,9 @@ export default {
     },
     adminNewUser(user){
         return post("/admin/user/new-user", user)
+    },
+    adminGetUser(id){
+        return get( "/admin/user/get", {id});
     },
     //importCourseUser( query ){
     //    return post("admin/user/update", query);

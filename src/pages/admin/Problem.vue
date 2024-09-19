@@ -15,6 +15,7 @@ import { Checkbox, CopyConfig, Message, Modal } from 'view-ui-plus';
 const problemId = ref(null);
 const userInfo = ref({login:false});
 const formValidate = ref(null);
+const formValidateExtra = ref(null);
 
 const formData = ref({
   title:"测试题",
@@ -44,14 +45,13 @@ const ruleData = ref({
     { required: true, message: '题号不能为空', trigger: 'blur' }
   ],
   timeLimit:[
-    { required: true, message: '必须给出时间限制', trigger: 'blur' }
+    { type:'number', required: true, message: '必须给出时间限制', trigger: 'blur' }
   ],
   memoryLimit:[
-    { required: true, message: '必须给出内存限制', trigger: 'blur' }
+    { type:'number', required: true, message: '必须给出内存限制', trigger: 'blur' }
   ],
   languages:[
-    { required: true, message: '至少选择一项语言', trigger: 'blur' },
-    { type: 'array', min: 1, message: '至少选择一项语言', trigger: 'change' }
+    { required:true, type: 'array', min: 1, message: '至少选择一项语言', trigger: 'change' }
   ],
   description:[
     { required: true, message: '题目描述不能为空', trigger: 'blur' }
@@ -63,10 +63,10 @@ const ruleData = ref({
     { required: true, message: '输出描述不能为空', trigger: 'blur' }
   ],
   majorTagId:[
-    { required: true, message: '请选择一个主类别', trigger: 'blur' },
+    { type:"number", required: true, message: '请选择一个主类别', trigger: 'blur' },
   ],
   subTagId:[
-    { required: true, message: '请选择一个子类别', trigger: 'blur' },
+    { type:"number", required: true, message: '请选择一个子类别', trigger: 'blur' },
   ],
   samples:[
   { type:'array', required:true, defaultField:{ type:'object', required:true, fields:{
@@ -301,6 +301,7 @@ const submit = function(){
     else{
       updateProblem();
     }
+    window.location.href="./problem-list.html";
     });
 }
 
@@ -335,10 +336,10 @@ onMounted(()=>{
       <template #title>
         <template v-if="problemId==null">新建题目</template>
         <template v-else>编辑题目({{ problemId }})</template>
-        <!-- <Button @click="console.log(formData,tagLists)">看</Button> -->
+        <!-- <Button @click="console.log(formData)">看</Button> -->
       </template>
       <template #extra>
-        <Form ref="formValidate" :model="formData" :rules="ruleData" label-position="left" :label-width="80">
+        <Form ref="formValidateExtra" :model="formData" :rules="ruleData" label-position="left" :label-width="80">
           <Row>
             <FormItem label="难度" prop="difficulty">
               <RadioGroup v-model="formData.difficulty" type="button" button-style="solid" size="small">

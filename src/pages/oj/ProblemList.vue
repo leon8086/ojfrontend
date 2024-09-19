@@ -3,7 +3,7 @@ import NavBar from '@/components/NavBar.vue';
 import TitledPanel from '@/components/TitledPanel.vue';
 import Pagination from '@/components/Pagination.vue';
 import ProbTag from "@/components/ProbTag.vue";
-import UserSubmission from '@/components/UserSubmission.vue';
+import UserProblemStatus from '@/components/UserProblemStatus.vue';
 import XMUTFooter from '@/components/XMUTFooter.vue';
 
 import { ref, computed, reactive, onMounted, watch } from 'vue';
@@ -154,7 +154,7 @@ const statusIcon = ref({
   '8':'md-help-circle',
 })
 
-const submission = ref(null);
+const userStatus = ref(null);
 
 watch(()=>userInfo.value.id, (oldVal, newVal)=>{
   if( newVal != oldVal ){
@@ -162,7 +162,7 @@ watch(()=>userInfo.value.id, (oldVal, newVal)=>{
     .then(resp=>{
       api.getUserStatus()
       .then(status=>{
-        submission.value.loadData( resp.data, status.data );
+        userStatus.value.loadData( resp.data, status.data );
       });
     });
   }
@@ -278,9 +278,7 @@ onMounted(() => {
               <template #title>
                 <div slot="title" class="taglist-title">我的答题</div>
               </template>
-              <div style="padding-left: 20px">
-                <UserSubmission ref="submission" :span="6"></UserSubmission>
-              </div>
+              <UserProblemStatus ref="userStatus" :span="8" />
             </TitledPanel>
           </Col>
         </Row>

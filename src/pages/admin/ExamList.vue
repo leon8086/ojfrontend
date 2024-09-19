@@ -153,7 +153,7 @@ onMounted(() => {
                           <Card :title="'&nbsp;'+(key+1).toString()+'. 选 '+item.quantity.toString()+' 题'" icon="ios-options" :padding="0" style="margin-right:5px;" class="problem-config">
                             <CellGroup>
                               <Cell v-for="p,k in item.problems">
-                                <a :href='"/problem?id="+p.id' target="_blank">{{ p.title }}</a>
+                                <a :href='"../problem.html?id="+p.id' target="_blank">{{ p.title }}</a>
                                 <template #extra>
                                   <Tag :color="DIFFICULTY_COLOR[p.difficulty]">{{ $t("m."+p.difficulty) }}</Tag>
                                 </template>

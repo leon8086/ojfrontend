@@ -1,6 +1,7 @@
 <script>
 import {reactive, watch, ref, onMounted} from "vue";
 import Pagination from "@/components/Pagination.vue";
+import ProbTag from "@/components/ProbTag.vue";
 import { DIFFICULTY_COLOR } from "@/utils/constants";
 import i18n from "@/i18n";
 import api from "@/api";
@@ -8,6 +9,7 @@ import api from "@/api";
 export default{
   components:{
     Pagination,
+    ProbTag,
   },
   props:["modelValue"],
   emits:['update:modelValue'],
@@ -19,9 +21,9 @@ export default{
       problemData: {
         columns: [
           {
-            title: '选中',
+            title: '选',
             slot: 'checked',
-            width: 80,
+            width: 60,
           },
           {
             title: 'id',
@@ -40,9 +42,15 @@ export default{
           },
           {
             title: i18n.global.t("m.Level"),
-            width: 120,
+            width: 100,
             slot: 'level',
-          }
+          },
+          {
+            title: "分类",
+            align: "center",
+            slot: "tag",
+            width: 280,
+          },
         ],
         data: []
       },
@@ -78,6 +86,7 @@ export default{
       }
     },
     filterByKeyword(){
+      this.query.page = 1;
       this.getProblemList();
     },
     getProblemList() {
@@ -133,12 +142,12 @@ export default{
         <Checkbox @click="selectProblem(row)" v-model="row.selected"></Checkbox>
       </template>
       <template #id="{row}">
-        <a :href="'/problem?id=' + row.id" target="_blank">
+        <a :href="'../problem.html?id=' + row.id" target="_blank">
           {{ row.displayId }}
         </a>
       </template>
       <template #title="{row}">
-        <a :href="'/problem?id=' + row.id" target="_blank">
+        <a :href="'../problem.html?id=' + row.id" target="_blank">
           {{ row.title }}
         </a>
       </template>
@@ -146,6 +155,11 @@ export default{
         <Tag :color="DIFFICULTY_COLOR[row.difficulty]">
           {{ $t("m."+row.difficulty) }}
         </Tag>
+      </template>
+      <template #tag="{row}">
+        <div style="text-align: left;">
+          <ProbTag type="major">{{ row.majorTag  }}</ProbTag><ProbTag type="sub">{{ row.subTag  }}</ProbTag>
+        </div>
       </template>
     </Table>
     <Pagination @on-page-size-change="getProblemList" :show-sizer="false" :total="query.total" size="small"

@@ -81,6 +81,10 @@
         type: Boolean,
         default: false,
       },
+      resetCode:{
+        type: Function,
+        default: ()=>{},
+      },
       noHeader:{
         type:Boolean,
         default: false,
@@ -161,6 +165,7 @@
         view.value.dispatch({ effects:theme_comp.reconfigure(theme_op)});
       }
       const onResetClick = () =>{
+        props.resetCode();
       }
 
       return {
