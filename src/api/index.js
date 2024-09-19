@@ -304,6 +304,12 @@ export default {
     adminGetUserExamProfile( examId, userId ){
         return get("admin/exam/user-profile", {examId, userId});
     },
+    adminRestartExamUser( examId, userId ){
+        return post("admin/exam/restart-user", {examId, userId});
+    },
+    adminRecountScore( examId ){
+        return post("admin/exam/recount", {examId});
+    },
 
     // exam
     getExamListValid(){
@@ -335,6 +341,9 @@ export default {
     },
     quitExam( examId ){
         return post("exam/quit", {examId});
+    },
+    restartExam(examId){
+        return post("exam/restart", {examId});
     },
 
     // user admin

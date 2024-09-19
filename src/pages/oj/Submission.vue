@@ -149,12 +149,12 @@ const split = ref(0.55)
                             </Input>
                             </Col>
                             <Col :span="8">
-                            <h3>输出</h3>
+                            <h3>正确</h3>
                             <Input :rows="8" type="textarea" v-model="row.answer" class="sample-text" readonly>
                             </Input>
                             </Col>
                             <Col :span="8">
-                            <h3>预计</h3>
+                            <h3>你的输出</h3>
                             <Input :rows="8" type="textarea" v-model="row.output" class="sample-text" readonly>
                             </Input>
                             </Col>

@@ -11,6 +11,7 @@ import i18n from '@/i18n';
 import api from '@/api';
 import utils from '@/utils';
 import { DIFFICULTY_COLOR } from '@/utils/constants';
+import { Modal } from 'view-ui-plus';
 
 const userInfo = ref({
   login:false,
@@ -104,11 +105,11 @@ onMounted(()=>{
       slot: "score",
       align: "center",
     },
-      {
-        title: "结束时间",
-        align: "center",
-        slot: 'endTime',
-      });
+    {
+      title: "结束时间",
+      align: "center",
+      slot: 'endTime',
+    });
   }, err=>{
 
   });
@@ -138,6 +139,45 @@ const backToHome = function(){
   window.location.href="/";
 }
 
+const adminRestartExam = function( uid ){
+  api.adminRestartExamUser(examInfo.value.id, uid)
+  .then(resp=>{
+    Modal.info({
+      title:'成功',
+      content:"调用成功",
+      onOk(){
+        getExamRank();
+      }
+    });
+  })
+}
+
+const restartExam = function(){
+  api.restartExam(examInfo.value.id)
+  .then(resp=>{
+    Modal.info({
+      title:'成功',
+      content:"调用成功",
+      onOk(){
+        window.location.href="./exam.html?id="+examInfo.value.id;
+      }
+    });
+  })
+}
+
+const recountScore = function(){
+  api.adminRecountScore(examInfo.value.id)
+  .then(resp=>{
+    Modal.info({
+      title:'成功',
+      content:"调用成功",
+      onOk(){
+        getExamRank();
+      }
+    });
+  })
+}
+
 </script>
 
 <template>
@@ -145,7 +185,7 @@ const backToHome = function(){
     <Menu theme="light" mode="horizontal" class="oj-menu">
       <div class="logo">
         <Icon type="ios-create-outline" style="padding-right:5px"></Icon>
-        <span>{{examInfo.title}}</span>
+        <span>{{examInfo.title}} - {{userInfo.username}}</span>
       </div>
       <div class="time-remain">
         <Icon type="ios-clock-outline"></Icon>
@@ -166,8 +206,10 @@ const backToHome = function(){
       <TitledPanel id="submission">
         <template #title>
           排名
+          <Button @click="console.log(examInfo)">看</Button>
         </template>
         <template #extra>
+          <Button icon="md-refresh" type="primary" style="margin-right:5px" @click="recountScore()">重新计分</Button>
           实时更新：
           <Switch v-model="realtimeUpdate">
             <template #open>
@@ -189,12 +231,18 @@ const backToHome = function(){
               <a :href="'exam-userinfo.html?id='+examInfo.id+'&user='+row.user.id" target="_blank">
                 {{ row.user.username }}
               </a>
+              <Tooltip content="重启答题" placement="top">
+                <Button icon="md-refresh" :disabled="(!row.isEnded || examInfo.isEnded)" @click="adminRestartExam(row.user.id)" style="margin-left:5px"></Button>
+              </Tooltip>
             </template>
             <template v-else>
               <template v-if= "userInfo.id == row.user.id" >
               <a :href="'exam-userinfo.html?id='+examInfo.id" target="_blank">
                 {{ row.user.username }}
               </a>
+                <Tooltip content="重启答题" placement="top">
+                  <Button icon="md-refresh" :disabled="(!row.isEnded || examInfo.isEnded)" @click="restartExam()" style="margin-left:5px"></Button>
+                </Tooltip>
               </template>
               <template v-else>
                 {{ row.user.username }}
